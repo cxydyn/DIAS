@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Digital Integrated Application System</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3b4bdf">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/3b4bdf/ffffff?text=DIAS">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DIAS Vopak">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone@7.24.4/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style type="text/tailwindcss">
+        @layer base { 
+            html { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; } 
+            body { @apply bg-slate-50 text-slate-800 antialiased overscroll-y-none; }
+        }
+    </style>
+    
+    <style>
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse-subtle { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        @keyframes slideUpFade { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes bubblePop {
+            0% { opacity: 0; transform: scale(0.5); }
+            60% { transform: scale(1.2); opacity: 1; }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; visibility: hidden; } }
+        
+        .animate-fade-up { animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-fade-up-delayed { animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .animate-pulse-subtle { animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .animate-slide-up-fade { animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-bubble-pop { animation: bubblePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .animate-fade-out { animation: fadeOut 0.5s ease-out forwards; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        
+        .glass-card-dark {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+
+    <script>
+        window.__USER_EMAIL__ = "<?= typeof userEmail !== 'undefined' ? userEmail : 'abdullah.rosprianto@vopak.com' ?>";
+    </script>
+</head>
+<body>
+    <div id="root" class="h-screen w-full flex overflow-hidden"></div>
+    
+    <script type="text/babel" data-type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const { useState, useMemo, useEffect, useCallback, useRef } = React;
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDuuryI1kUZ45DLFLaaX8zWVIgncxQosko",
+            authDomain: "dias-6e299.firebaseapp.com",
+            projectId: "dias-6e299",
+            storageBucket: "dias-6e299.firebasestorage.app",
+            messagingSenderId: "47012657709",
+            appId: "1:47012657709:web:4028f5c7e0427f3f6cd6a4",
+        };
+        
+        const firebaseApp = initializeApp(firebaseConfig);
+        const auth = getAuth(firebaseApp);
+        const db = getFirestore(firebaseApp);
+        const appId = 'dias-vopak-app';
+
+        const ptwFirebaseConfig = {
+            apiKey: "AIzaSyAg6j44AZTaYfdopZX6KTZ6Q7CO12gVyDg",
+            authDomain: "vopak-ptw.firebaseapp.com",
+            projectId: "vopak-ptw",
+            messagingSenderId: "103062169329",
+            appId: "1:103062169329:web:603d3994a4bf11f6f7eb50"
+        };
+        
+        const ptwFirebaseApp = initializeApp(ptwFirebaseConfig, "PTW_APP");
+        const ptwAuth = getAuth(ptwFirebaseApp);
+        const ptwDb = getFirestore(ptwFirebaseApp);
+        const ptwAppId = 'vopak-ptw-app';
+
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, error: null, errorInfo: null };
+            }
+            static getDerivedStateFromError(error) { return { hasError: true }; }
+            componentDidCatch(error, errorInfo) {
+                console.error("UI Crash Terdeteksi:", error, errorInfo);
+                this.setState({ error, errorInfo });
+            }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="flex items-center justify-center h-screen w-full bg-slate-100 p-6">
+                            <div className="bg-white p-8 rounded-2xl shadow-xl max-w-2xl w-full border border-rose-200 text-center md:text-left">
+                                <div className="text-rose-500 mb-4 flex justify-center md:justify-start">
+                                    <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77-1.333.192 3 1.732 3z" /></svg>
+                                </div>
+                                <h1 className="text-2xl font-bold text-slate-800 mb-2">System Error / Kesalahan Sistem</h1>
+                                <p className="text-slate-600 mb-4 text-sm md:text-base">A UI crash occurred. Please reload the page.</p>
+                                <button onClick={() => window.location.reload()} className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-6 rounded-xl transition-colors w-full md:w-auto">
+                                    Reload Page / Muat Ulang
+                                </button>
+                            </div>
+                        </div>
+                    );
+                }
+                return this.props.children; 
+            }
+        }
+
+        const initialAppData = [
+            { id: 'induction', name: 'Induction', description: { id: 'Video Safety Induction Vopak.', en: 'Vopak Safety Induction Video.' }, iconStr: 'film', details: [
+                { id: 'vid_safety', title: { id: 'Video Safety Induction', en: 'Safety Induction Video' }, link: 'https://www.youtube.com/embed/M7lc1UVf-VE?autoplay=1&mute=1' }
+            ]},
+            { id: 'permit', name: 'Permit', description: { id: 'Sistem izin kerja terintegrasi.', en: 'Integrated work permit system.' }, iconStr: 'document-text', details: [
+                { id: 'permit_request', title: { id: 'Permintaan Izin', en: 'Permit Request' }, link: 'https://script.google.com/a/macros/vopak.com/s/AKfycbzAYxbhXJAsqTXjRvmwbsMClG36WD1dcmJ_NBgtW6Nsnn00PBAJssfutW1TI_CDYY02CQ/exec' },
+                { id: 'permit_owner', title: { id: 'Dasbor Pemilik', en: 'Owner Dashboard' }, link: 'https://script.google.com/a/macros/vopak.com/s/AKfycbysrDnpaUvhXNTMQrw7w90NdcDnU7SE1EK89Oa1Ar46A4oK_NtEwOAKVegVSYgqyCFF/exec' },
+                { id: 'permit_engineer', title: { id: 'Dasbor Engineer', en: 'Engineer Dashboard' }, link: 'https://script.google.com/a/macros/vopak.com/s/AKfycbzrDnKBoTMnzHS-i8yoi2yITNHYlKYE5woLni8AX_fQ7rJqjWuK53Int4YCdNNFZnM7/exec' },
+                { id: 'permit_tl', title: { id: 'Dasbor Team Leader', en: 'TL Dashboard' }, link: 'https://script.google.com/a/macros/vopak.com/s/AKfycbxpGPo5rp1yHnTqi57aAHixsTPEg7uBnR_ozJjz9pCsAlKu4A6RUlDayen4O8CAMvhWQg/exec' },
+                { id: 'permit_map', title: { id: 'Peta Izin', en: 'Permit Map' }, link: 'https://script.google.com/a/vopak.com/macros/s/AKfycbxpGPo5rp1yHnTqi57aAHixsTPEg7uBnR_ozJjz9pCsAlKu4A6RUlDayen4O8CAMvhWQg/exec?page=map' }
+            ]},
+            { id: 'loto', name: 'LOTO', description: { id: 'Manajemen Lockout-Tagout.', en: 'Lockout-Tagout management.' }, iconStr: 'lock-closed', details: [
+                { id: 'loto_form', title: { id: 'Formulir Isolasi', en: 'Isolation Form' }, link: 'https://cxydyn.github.io/IsolationPoint/' }, 
+                { id: 'loto_gen', title: { id: 'Generator Isolasi', en: 'Isolation Generator' }, link: 'https://cxydyn.github.io/IsolationPoint/' }
+            ]},
+            { id: 'certificate', name: 'Certificate', description: { id: 'Manajemen sertifikat.', en: 'Certificate management.' }, iconStr: 'badge-check', details: [
+                { id: 'cert_excavation', title: { id: 'Sertifikat Penggalian', en: 'Excavation Cert' }, link: '#' },
+                { id: 'cert_camera', title: { id: 'Sertifikat Kamera', en: 'Camera Cert' }, link: '#' },
+                { id: 'cert_scaffolding', title: { id: 'Sertifikat Perancah', en: 'Scaffolding Cert' }, link: '#' }
+            ]},
+            { id: 'plan', name: 'Plan', description: { id: 'Repositori rencana.', en: 'Plan repository.' }, iconStr: 'clipboard-list', details: [
+                { id: 'plan_rescue', title: { id: 'Rencana Penyelamatan', en: 'Rescue Plan' }, link: 'https://cxydyn.github.io/rescueplan/' },
+                { id: 'plan_scaffolding', title: { id: 'Rencana Perancah', en: 'Scaffolding Plan' }, link: '#' }
+            ]},
+            { id: 'ppe', name: 'PPE', description: { id: 'Permintaan APD.', en: 'PPE Requests.' }, iconStr: 'user-group', details: [{ id: 'ppe_form', title: { id: 'Formulir APD', en: 'PPE Form' }, link: 'https://script.google.com/a/macros/vopak.com/s/AKfycbzv02y3kIFXjSvVnhq1QmIICN5UPNSR4Yd7iiDRfShv_9TCK7DlgOOuZ1fMi3oJioz-sg/exec' }] },
+            { id: 'monitoring', name: 'Monitoring', description: { id: 'Dashboard Eksternal.', en: 'External Dashboard.' }, iconStr: 'chart-bar', iframeUrl: 'https://en.wikipedia.org/wiki/Main_Page' }
+        ];
+
+        const getIcon = (input, className = "h-6 w-6") => {
+            const icons = {
+                'home': <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.592 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />,
+                'document-text': <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />,
+                'shield-check': <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />,
+                'lock-closed': <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />,
+                'exclamation-circle': <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77-1.333.192 3 1.732 3z" />,
+                'badge-check': <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />,
+                'clipboard-list': <path strokeLinecap="round" strokeLinejoin="round" d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0118 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125v9.375m-8.25-3l1.5 1.5 3-3.75" />,
+                'user-group': <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />,
+                'chart-bar': <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />,
+                'film': <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 7.5h17.25M3.375 12h17.25m-17.25 4.5h17.25M5.25 4.5h13.5c.828 0 1.5.672 1.5 1.5v12c0 .828-.672 1.5-1.5 1.5H5.25c-.828 0-1.5-.672-1.5-1.5v-12c0-.828.672-1.5 1.5-1.5z" />
+            };
+            const safeInput = input || 'document-text';
+            if (icons[safeInput]) return <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>{icons[safeInput]}</svg>;
+            return <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d={safeInput} /></svg>;
+        };
+
+        const VopakLogo = ({ className }) => ( 
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="10 50 560 105" className={className}>
+                <path fill="#cfd9ed" d="M150.5 78l-1 2-60.5-.5 60.5-.5 1-1zM92.5 83l35.5.5-36 .5-.5 2-.5-1.5 1.5-1.5zM160.5 83l39 .5 1.5 1.5-.5 1.5-.5-2-39.5-1v-.5zM127.5 85l-1 2 1-2zM159.5 85l.5 10.5-1 .5.5-11zM123.5 91l-1 2 1-2zM119.5 97l-1 2 1-2zM160.5 103l.5 1.5-1.5 1.5-45.5-.5.5-2 1 1 44.5.5.5-2zM192.5 104l.5 1.5-1.5 2.5-.5-1.5 1.5-2.5zM30.5 106l.5 1.5-1.5 2.5-.5-1.5 1.5-2.5zM110.5 111h50l.5 1.5-1.5-.5h-49zM75.5 113l.5 1.5-1.5 2.5-.5-1.5 1.5-2.5zM79.5 114l.5 2.5-1 .5.5-3zM24.5 121l.5 2 46 .5-45.5.5-1-3zM77.5 122l107.5.5-107.5.5v-1zM75.5 124l.5 1.5-1.5 2.5-.5-1.5 1.5-2.5zM67.5 144l.5 1.5-1.5 2.5-.5-1.5 1.5-2.5zM66.5 149l108.5.5-108.5.5v-1z"/>
+                <path fill="#fdfdfb" d="M45.5 54c3.3-1.1 2.5 1.5 3.5 4-2.7 1.1-2-1.5-3.5-4zM155 54h6.5l.5 2-3.5-1-3.5 1v-2zM63.5 57h80.5l-80.5.5v-.5zM161.5 58l.5 1.5-2.5 3.5-2.5-.5 2-.5 2.5-4zM45 59c2.7-1.1 2 1.5 1 5.5l.5 1.5-1.5-7zM158.5 66l.5 4-1.5-2.5 1-1.5zM161.5 70l.5 2-2-.5 1.5-1.5zM40 72l3 .5-1 2 .5 1.5-1.5-.5-2.5 3.5-.5-2.5 2-4.5zM37.5 81l.5 1.5-1.5 4.5-.5-3.5 1.5-2.5zM94.5 81l3.5.5-3.5.5v-1zM99.5 81l21.5.5-21.5.5v-1zM123.5 81l5.5.5-5.5.5v-1zM157 81l4 .5-1.5 2.5-2.5-1v-2zM162.5 81l39 .5.5 1.5-2 1 .5-1.5-38 1v-2zM130 83l3 1.5-1.5 3.5 1.5-5zM202.5 84l2.5 1.5-2.5 3.5-.5-2.5.5-2.5zM155 87l3 1.5-3 1.5v-3zM87.5 88l.5 1.5-2 6 .5 1.5-1.5-.5-2 6 .5 1.5-1.5-.5-1 4 .5 1.5-1.5-.5-.5 1.5-1.5-2.5 2 .5-1-3 2 .5 4-11-.5-1.5 1.5.5-1-3 2 .5.5-2zM28 90c2.7-1.1 2 1.5 5 1.5v4.5l-4.5 6.5-.5-1.5 3-8-3-4zM124.5 94c2.5 1.2 1.5 5 29 5l.5 3.5-1 .5-.5-3H124.5l-2 1-1.5-3.5 1 .5 2.5-4zM157.5 94l.5 4.5-1 .5.5-5zM27.5 96l.5 2.5-1 .5.5-3zM159.5 96l.5 2.5-1 .5.5-3zM197.5 96l.5 2.5-1 .5.5-3zM158.5 100l.5 4-3-1.5 2.5-2.5zM196.5 101l.5 3.5-2.5 3.5-1.5-.5 3.5-6.5zM117.5 103l3.5.5-3.5.5v-1zM197.5 108l.5 3.5-1 .5.5-4zM192.5 110l1.5 2.5-2 1 .5-3.5zM157.5 112c2.6-.7 1.5 2-1.5 1.5l1.5-1.5zM77.5 113l.5 4-2-1.5 1.5-2.5zM111 113l6 1 .5 2h8v1h-8-4.5l1.5-1-3.5-1v-2zM126.5 113l17.5.5-17.5.5v-1zM188.5 115l1 2-1-2zM144.5 116l11.5.5-11.5.5v-1zM18.5 117l.5 2.5-1 .5.5-3zM22 117l3 .5-1 2 .5 1.5-1.5-.5-1 5.5-3-1.5 3-7.5zM76.5 118l2.5 1.5-3 2 .5 1.5-2.5-1.5 2.5-3.5zM180.5 118l1.5 3-3-1.5 1.5-1.5zM185.5 118c3.4-.9 1.5 4.5-1.5 2.5l1.5-2.5zM81.5 119l-1 2 1-2zM86.5 119l2.5.5-2.5.5v-1zM95.5 119l2.5.5-2.5.5v-1zM104.5 119l2.5.5-2.5.5v-1zM113.5 119l2.5.5-2.5.5v-1zM122.5 119l2.5.5-2.5.5v-1zM131.5 119l2.5.5-2.5.5v-1zM140.5 119l2.5.5-2.5.5v-1zM149.5 119l2.5.5-2.5.5v-1zM158.5 119l2.5.5-2.5.5v-1zM167.5 119l2.5.5-2.5.5v-1zM25.5 125l37.5.5-37.5.5v-1zM66.5 125h6.5v2.5h-1-5.5v-2.5zM187.5 126c2.3-.7 1.5 1.5 0 0zM185.5 129l0.5 4-2-2.5 1.5-1.5zM187 133c3-1 2 2 0 0zM63 135c2.7-1.1 2 1.5 0 1-2 1 0 0zM68.5 135l0.5 1.5-5.5 12.5-0.5-1.5 2-3-1-2 4.5-7.5zM178.5 140l1.5 3.5-1 .5-.5-4zM178.5 146l0.5 1.5-4.5 4.5h-2v-1l5.5-4 .5-1zM63.5 151l3 1 3.5-1-.5 2h-6.5l0.5-2zM178 151c3-1 2 2 0 0z"/>
+                <path fill="#092271" d="M51.5 58h106l.5 1.5-8 19.5h-61.5l-.5 2.5-17.5 41.5h-45l-.5-1.5 22.5-58 3.5-5.5zM93.5 84l33.5.5-14 21 48 .5-1-22h40l-13.5 31.5h-24l-.5-3.5-1.5-1.5-51-.5-4 5H80.5l-.5-1.5 10-25 3.5-5.5zM76 124h107.5l.5 1.5-10.5 23.5h-106l-.5-1.5 9-23.5z"/>
+                <text x="215" y="145" fontFamily="'Arial Black', 'Helvetica Neue', Helvetica, Arial, sans-serif" fontWeight="900" fontSize="105" letterSpacing="-2.5" fill="#092271">Vopak</text>
+            </svg>
+        );
+
+        const SplashScreen = ({ progress, total, loaded, moduleCount, onSkip, language }) => {
+            const isComplete = progress >= 100;
+            return (
+                <div className={`fixed inset-0 z-[999] bg-slate-900 flex flex-col items-center justify-center p-6 sm:p-8 transition-opacity duration-500 ${isComplete ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 opacity-90"></div>
+                    
+                    <div className="relative z-10 flex flex-col items-center w-full max-w-md">
+                        <div className="bg-white p-4 sm:p-6 rounded-3xl shadow-[0_0_30px_rgba(255,255,255,0.1)] mb-6 md:mb-8 animate-pulse flex items-center justify-center min-w-[200px] md:min-w-[220px]">
+                            <VopakLogo className="h-10 sm:h-16 w-auto" />
+                        </div>
+                        
+                        <h1 className="text-2xl md:text-3xl font-extrabold text-white mb-2 tracking-tight text-center">
+                            {language === 'en' ? 'Loading System' : 'Memuat Sistem'}
+                        </h1>
+                        <p className="text-slate-400 mb-8 md:mb-10 text-xs md:text-sm text-center px-4">
+                            {language === 'en' ? `Preparing ${moduleCount || 6} main modules and syncing internal data...` : `Menyiapkan ${moduleCount || 6} modul utama dan menyinkronkan data internal...`}
+                        </p>
+
+                        <div className="w-full bg-slate-800 rounded-full h-3 mb-3 overflow-hidden border border-slate-700 p-[1px]">
+                            <div 
+                                className="bg-gradient-to-r from-indigo-500 to-cyan-400 h-full rounded-full transition-all duration-300 ease-out shadow-[0_0_15px_rgba(99,102,241,0.5)]" 
+                                style={{ width: `${progress}%` }}
+                            ></div>
+                        </div>
+
+                        <div className="flex justify-between w-full text-[10px] md:text-xs font-bold text-slate-400 px-1">
+                            <span>{loaded} / {total} {language === 'en' ? 'Components Ready' : 'Komponen Siap'}</span>
+                            <span className="text-indigo-300">{progress}%</span>
+                        </div>
+
+                        <button 
+                            onClick={onSkip} 
+                            className="mt-10 md:mt-12 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-colors border border-white/10 active:scale-95"
+                        >
+                            {language === 'en' ? 'Skip & Enter Dashboard' : 'Lewati & Masuk Dashboard'}
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const Sidebar = ({ apps, activeAppId, onSelectApp, language, setLanguage, onLogout, setMenuOpen, notifications, setIsNotificationOpen, isMobileSidebarOpen, setMobileSidebarOpen }) => {
+            const [hoveredApp, setHoveredApp] = useState(null);
+            const [tooltipStyle, setTooltipStyle] = useState({});
+
+            const handleMouseEnter = useCallback((e, app) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setTooltipStyle({ top: rect.top + rect.height / 2 });
+                setHoveredApp(app);
+            }, []);
+
+            return (
+                <aside 
+                    className={`fixed md:relative inset-y-0 left-0 z-[100] md:z-50 transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} w-[84px] glass-panel bg-white/95 md:bg-white/80 my-0 md:my-4 ml-0 md:ml-4 rounded-none md:rounded-2xl shadow-2xl md:shadow-lg border-r md:border border-slate-200/60 md:border-white/60 flex flex-col items-center py-6 flex-shrink-0 justify-between backdrop-blur-xl`}
+                >
+                    <div className="w-full flex flex-col items-center flex-1 overflow-hidden">
+                        <div className="mb-4 w-[70px] bg-slate-50/80 py-2.5 px-2 rounded-xl border border-white shrink-0 z-10 flex items-center justify-center shadow-sm">
+                            <VopakLogo className="w-full h-auto" />
+                        </div>
+                        
+                        <nav className="w-full flex-1 overflow-y-auto hide-scrollbar px-3">
+                            <ul className="space-y-3 pt-2 pb-4 relative">
+                                {apps.map((app, idx) => {
+                                    const isActive = app.id === activeAppId;
+                                    const appNotifications = notifications.filter(n => n.appId === app.id && !n.isRead).length;
+
+                                    return (
+                                        <li key={app.id} className="w-full relative group">
+                                            <button 
+                                                onClick={() => { onSelectApp(app.id, null); setMobileSidebarOpen(false); }} 
+                                                onMouseEnter={(e) => handleMouseEnter(e, app)}
+                                                onMouseLeave={() => setHoveredApp(null)}
+                                                className={`relative w-full aspect-square flex items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-105 ${isActive ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'text-slate-500 hover:bg-slate-100 hover:text-indigo-600'}`}
+                                            >
+                                                {isActive && <span className="absolute -left-3 w-1.5 h-6 bg-indigo-600 rounded-r-full hidden md:block"></span>}
+                                                {getIcon(app.iconStr, "h-6 w-6")}
+                                                {appNotifications > 0 && (
+                                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-white animate-bubble-pop">
+                                                        {appNotifications > 9 ? '9+' : appNotifications}
+                                                    </span>
+                                                )}
+                                            </button>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </nav>
+                    </div>
+
+                    <div className="w-full flex flex-col items-center space-y-4 pt-4 border-t border-slate-200/50 relative">
+                        <div className="hidden md:block">
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); setIsNotificationOpen(prev => !prev); }} 
+                                className="relative p-2.5 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all group"
+                                title={language === 'en' ? 'Notifications' : 'Notifikasi'}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 group-hover:animate-pulse-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                </svg>
+                                {notifications.filter(n => !n.isRead).length > 0 && (
+                                    <span className="absolute top-1 right-2 flex h-2.5 w-2.5">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                                    </span>
+                                )}
+                            </button>
+                        </div>
+
+                        <div className="flex flex-col bg-slate-100 rounded-lg p-1 border border-slate-200 mt-2">
+                            <button onClick={() => setLanguage('id')} className={`text-[10px] font-bold px-2 py-1.5 rounded-md transition-all ${language === 'id' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>ID</button>
+                            <button onClick={() => setLanguage('en')} className={`text-[10px] font-bold px-2 py-1.5 rounded-md transition-all ${language === 'en' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>EN</button>
+                        </div>
+
+                        <button onClick={onLogout} className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all mb-2" title={language === 'en' ? 'Logout' : 'Keluar'}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1 md:ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        </button>
+                    </div>
+                    
+                    {hoveredApp && (
+                        <div 
+                            className="hidden md:flex fixed left-[84px] ml-5 z-[100] pointer-events-none items-center"
+                            style={{ top: `${tooltipStyle.top}px`, transform: 'translateY(-50%)' }}
+                        >
+                            <div className="bg-slate-800 px-4 py-2.5 rounded-xl text-sm font-bold text-white shadow-xl shadow-slate-900/20 whitespace-nowrap animate-bubble-pop origin-left tracking-wide">
+                                {hoveredApp.name}
+                            </div>
+                        </div>
+                    )}
+                </aside>
+            );
+        };
+
+        const NotificationPanel = ({ isOpen, onClose, notifications, markAsRead, onSelectApp, onOpenForm, language }) => {
+            if (!isOpen) return null;
+
+            const handleNotificationClick = (notif) => {
+                markAsRead(notif.id);
+                if (notif.actionLink && notif.actionTitle) {
+                    onClose();
+                    onOpenForm(notif.actionLink, notif.actionTitle, notif.permitIndex || null);
+                } else {
+                    onSelectApp(notif.appId, notif.subItemId || null);
+                    onClose();
+                }
+            };
+
+            return (
+                <>
+                    <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm md:z-[80]" onClick={onClose}></div>
+                    
+                    <div className="fixed md:absolute bottom-0 md:bottom-20 inset-x-0 md:inset-x-auto md:left-28 w-full md:w-80 bg-white rounded-t-3xl md:rounded-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] md:shadow-2xl border border-slate-200 z-[110] md:z-[90] overflow-hidden flex flex-col max-h-[85vh] md:max-h-[500px] animate-slide-up-fade md:animate-fade-up origin-bottom">
+                        
+                        <div className="md:hidden w-full flex justify-center pt-4 pb-2 bg-slate-50 border-b border-slate-200" onClick={onClose}>
+                            <div className="w-12 h-1.5 bg-slate-300 rounded-full"></div>
+                        </div>
+
+                        <div className="bg-slate-50 px-5 py-4 border-b border-slate-200 flex justify-between items-center shrink-0">
+                            <h3 className="font-bold text-slate-800 text-sm md:text-base">{language === 'en' ? 'Notifications' : 'Notifikasi'}</h3>
+                            <span className="text-xs font-semibold text-slate-500 bg-slate-200 px-2.5 py-1 rounded-full">
+                                {notifications.filter(n => !n.isRead).length} {language === 'en' ? 'New' : 'Baru'}
+                            </span>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto hide-scrollbar p-3">
+                            {notifications.length === 0 ? (
+                                <div className="text-center py-12 text-slate-400">
+                                    <svg className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                                    <p className="text-sm font-medium">{language === 'en' ? 'No notifications yet.' : 'Belum ada notifikasi.'}</p>
+                                </div>
+                            ) : (
+                                <ul className="space-y-1.5 md:space-y-1">
+                                    {notifications.map(notif => (
+                                        <li 
+                                            key={notif.id} 
+                                            className={`p-3.5 md:p-3 rounded-xl transition-colors cursor-pointer border border-transparent hover:bg-slate-50 ${!notif.isRead ? 'bg-indigo-50/50 border-indigo-100' : ''}`}
+                                            onClick={() => handleNotificationClick(notif)}
+                                        >
+                                            <div className="flex justify-between items-start mb-1.5">
+                                                <span className="text-[11px] md:text-xs font-bold text-indigo-600 uppercase tracking-wider">{notif.moduleName}</span>
+                                                <span className="text-[10px] md:text-[11px] text-slate-400 font-medium">{new Date(notif.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                            </div>
+                                            <p className={`text-sm md:text-[13px] leading-relaxed ${!notif.isRead ? 'text-slate-800 font-semibold' : 'text-slate-600 font-medium'}`}>{notif.message[language] || notif.message}</p>
+                                            
+                                            {notif.actionLink && (
+                                                <div className="mt-3 md:mt-2 flex">
+                                                    <span className="inline-flex items-center text-[10px] md:text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
+                                                        <svg className="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                                        {language === 'en' ? 'Click to Open Form' : 'Klik untuk Buka Form'}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    </div>
+                </>
+            );
+        };
+
+        const FormModal = ({ isOpen, onClose, data, language }) => {
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 md:p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm animate-fade-up">
+                    <div className="bg-white md:rounded-2xl shadow-2xl w-full max-w-5xl h-full md:max-h-[90vh] overflow-hidden flex flex-col relative">
+                        <div className="bg-white px-4 md:px-6 py-3 md:py-4 flex justify-between items-center shrink-0 border-b border-slate-200 z-10">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-blue-50 text-blue-600 p-2 md:p-2.5 rounded-xl">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                                </div>
+                                <div>
+                                    <h3 className="font-black text-base md:text-lg text-slate-800 tracking-tight leading-none">{data.title}</h3>
+                                    <p className="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">{language === 'en' ? 'Complete your task' : 'Selesaikan tugas Anda'}</p>
+                                </div>
+                            </div>
+                            <button onClick={onClose} className="bg-slate-100 hover:bg-rose-500 hover:text-white text-slate-600 w-8 h-8 rounded-lg flex items-center justify-center transition-colors shadow-sm" title={language === 'en' ? 'Close' : 'Tutup'}>
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        
+                        <div className="bg-[#1e3a8a] text-white px-4 md:px-6 py-3 md:py-4 flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-2 shrink-0">
+                            <div>
+                                <h2 className="text-sm md:text-xl font-bold tracking-wide">VOPAK TERMINAL JAKARTA</h2>
+                                <p className="text-[10px] md:text-xs text-blue-200 italic mt-0.5 uppercase">Request Action</p>
+                            </div>
+                            {data.permitNumber && (
+                                <div className="border border-blue-400 px-3 md:px-4 py-1.5 md:py-2 rounded bg-blue-800 text-xs md:text-sm font-bold shadow-inner">
+                                    NO. PERMIT: PERMIT-{data.permitNumber}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex-1 bg-slate-50 relative w-full h-full p-0">
+                            {!data.url ? (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-3 z-0">
+                                    <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77-1.333.192 3 1.732 3z" /></svg>
+                                    <span className="text-sm">{language === 'en' ? 'Form URL not found' : 'URL formulir tidak ditemukan'}</span>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-3 z-0">
+                                        <svg className="animate-spin h-8 w-8 text-indigo-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        <p className="text-[10px] font-bold tracking-widest uppercase mt-2">{language === 'en' ? 'Loading Form...' : 'Memuat Formulir...'}</p>
+                                    </div>
+                                    <iframe 
+                                        src={data.url} 
+                                        className="w-full h-full border-0 relative z-10 bg-transparent" 
+                                        allow="autoplay" 
+                                        onLoad={(e) => { e.target.style.backgroundColor = 'white'; if(e.target.previousElementSibling) e.target.previousElementSibling.style.display = 'none'; }}
+                                    ></iframe>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const HelpDeskModal = ({ isOpen, onClose, userEmail, language }) => {
+            const [description, setDescription] = useState('');
+            const [screenshot, setScreenshot] = useState(null);
+            const [isSubmitting, setIsSubmitting] = useState(false);
+
+            if (!isOpen) return null;
+
+            const handleFileChange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 5 * 1024 * 1024) { alert(language === 'en' ? "Max file size is 5MB." : "Ukuran file maksimal 5MB."); return; }
+                    const reader = new FileReader();
+                    reader.onloadend = () => setScreenshot(reader.result); 
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const handleSubmit = () => {
+                if (!description.trim()) { alert(language === 'en' ? "Please describe your issue." : "Mohon deskripsikan kendala Anda."); return; }
+                setIsSubmitting(true);
+                
+                setTimeout(() => {
+                    setIsSubmitting(false);
+                    alert(language === 'en' ? "Help Desk report sent successfully!" : "Laporan Help Desk berhasil dikirim!");
+                    setDescription(''); setScreenshot(null); onClose();
+                }, 1500);
+            };
+
+            return (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-up">
+                    <div className="bg-white rounded-3xl md:rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col transform transition-all max-h-[90vh]">
+                        <div className="bg-gradient-to-r from-rose-500 to-rose-600 px-5 md:px-6 py-4 flex items-center justify-between text-white shrink-0">
+                            <div className="flex items-center space-x-3">
+                                <svg className="w-5 h-5 md:w-6 md:h-6 text-rose-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                                <h3 className="font-bold text-base md:text-lg tracking-wide">{language === 'en' ? 'Help & Support' : 'Bantuan Kendala'}</h3>
+                            </div>
+                            <button onClick={onClose} className="text-rose-200 hover:text-white transition-colors bg-white/10 p-1.5 rounded-full hover:bg-white/20">
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        
+                        <div className="p-5 md:p-6 space-y-4 md:space-y-5 overflow-y-auto flex-1 hide-scrollbar">
+                            <div>
+                                <label className="block text-xs md:text-sm font-bold text-slate-700 mb-2">{language === 'en' ? 'Issue Description / Error' : 'Deskripsi Masalah / Error'}</label>
+                                <textarea 
+                                    value={description} onChange={(e) => setDescription(e.target.value)} placeholder={language === 'en' ? 'Detail the error or part that is not functioning...' : 'Jelaskan secara detail error atau bagian yang tidak berfungsi...'}
+                                    className="w-full border border-slate-300 rounded-2xl p-4 focus:ring-4 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all h-28 md:h-32 resize-none text-sm text-slate-700 bg-slate-50 focus:bg-white"
+                                ></textarea>
+                            </div>
+                            <div>
+                                <label className="block text-xs md:text-sm font-bold text-slate-700 mb-2">{language === 'en' ? 'Upload Screenshot' : 'Unggah Screenshot'} <span className="text-slate-400 font-normal">({language === 'en' ? 'Highly Recommended' : 'Sangat Disarankan'})</span></label>
+                                <div className="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center hover:bg-slate-50 transition-colors cursor-pointer relative group">
+                                    <input type="file" accept="image/*" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                    {screenshot ? (
+                                        <div className="flex flex-col items-center">
+                                            <img src={screenshot} alt="Preview Screenshot" className="max-h-32 md:max-h-40 object-contain rounded-xl mb-3 shadow-md border border-slate-200" />
+                                            <span className="text-xs text-rose-600 font-bold bg-rose-50 px-3 py-1.5 rounded-lg group-hover:bg-rose-100 transition-colors">{language === 'en' ? 'Change Image' : 'Ganti Gambar'}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center text-slate-500">
+                                            <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-3 group-hover:bg-rose-50 group-hover:text-rose-500 transition-colors">
+                                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                            </div>
+                                            <span className="text-xs md:text-sm font-bold text-slate-700 mb-1">{language === 'en' ? 'Click or Drag Image' : 'Klik atau Tarik Gambar'}</span>
+                                            <span className="text-[10px] md:text-xs font-medium text-slate-400">{language === 'en' ? 'Max file size: 5MB' : 'Maksimal ukuran file: 5MB'}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="p-4 md:p-5 bg-slate-50 border-t border-slate-100 flex justify-end space-x-3 shrink-0 rounded-b-3xl md:rounded-b-[2rem]">
+                            <button onClick={onClose} disabled={isSubmitting} className="px-5 md:px-6 py-2.5 md:py-3 rounded-xl text-xs md:text-sm font-bold text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors">{language === 'en' ? 'Cancel' : 'Batal'}</button>
+                            <button onClick={handleSubmit} disabled={isSubmitting} className={`px-5 md:px-6 py-2.5 md:py-3 rounded-xl text-xs md:text-sm font-bold text-white transition-all shadow-lg flex items-center ${isSubmitting ? 'bg-rose-400 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-700 hover:shadow-rose-500/40 transform hover:-translate-y-0.5'}`}>
+                                {isSubmitting ? (
+                                    <><svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> {language === 'en' ? 'Sending...' : 'Mengirim...'}</>
+                                ) : (
+                                    <><svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg> {language === 'en' ? 'Submit Report' : 'Kirim Laporan'}</>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const UnifiedDashboard = ({ language, displayApp, isUnified, activeUrl, allUrls, loadedUrls, onIframeLoad, onIframeReload, onSelectApp, activeSubItemId, isMenuOpen, setMenuOpen, notifications }) => {
+            
+            const [refreshKeys, setRefreshKeys] = useState({});
+
+            const activeItem = useMemo(() => {
+                if (displayApp?.details && activeSubItemId) {
+                    return displayApp.details.find(d => d.id === activeSubItemId);
+                }
+                return null;
+            }, [displayApp, activeSubItemId]);
+
+            const handleRefresh = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (activeUrl) {
+                    // Beritahu parent (App) bahwa iframe ini sedang tidak berstatus "loaded"
+                    // untuk menampilkan animasi loading spinner lagi.
+                    onIframeReload(activeUrl);
+                    
+                    // Update key untuk memaksa React melakukan re-mount komponen iframe
+                    setRefreshKeys(prev => ({
+                        ...prev,
+                        [activeUrl]: (prev[activeUrl] || 0) + 1
+                    }));
+                }
+            };
+
+            useEffect(() => {
+                const iframes = document.querySelectorAll('iframe.content-iframe');
+                iframes.forEach(iframe => {
+                    const iframeOriginalUrl = iframe.getAttribute('data-original-url');
+                    if (iframeOriginalUrl && iframeOriginalUrl !== activeUrl && iframe.src.includes('youtube.com')) {
+                        try {
+                            iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+                        } catch (e) {
+                            console.error('Gagal melakukan auto-pause video', e);
+                        }
+                    }
+                });
+            }, [activeUrl]);
+
+            return (
+                <div className="relative w-full h-full p-0 md:p-4 md:pl-0 flex flex-col md:flex-row">
+                    
+                    {isMenuOpen && displayApp?.details && displayApp.details.length > 0 && (
+                        <div 
+                            className="absolute inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300"
+                            onClick={() => setMenuOpen(false)}
+                        ></div>
+                    )}
+
+                    {displayApp?.details && displayApp.details.length > 0 && (
+                        <div className={`absolute left-0 top-0 bottom-0 md:top-4 md:bottom-4 z-[70] transition-all duration-300 ease-in-out transform ${isMenuOpen ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 pointer-events-none'}`}>
+                            <div className="w-[85vw] max-w-[280px] md:w-64 h-full bg-white/95 backdrop-blur-xl md:rounded-2xl shadow-2xl border-r md:border border-slate-200 flex flex-col p-4 overflow-hidden">
+                                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-4 px-2 flex justify-between items-center mt-2 md:mt-0">
+                                    <span>{displayApp.name} {language === 'en' ? 'Menu' : 'Menu'}</span>
+                                    <button onClick={() => setMenuOpen(false)} className="text-slate-400 hover:text-rose-500 transition-colors p-2 md:p-1 bg-slate-100 rounded-lg md:bg-transparent" title={language === 'en' ? 'Close Menu' : 'Tutup Menu'}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                </div>
+                                
+                                <div className="flex-1 overflow-y-auto space-y-2 md:space-y-1.5 pr-2 hide-scrollbar">
+                                    {displayApp.details.map((item, idx) => {
+                                        const isActive = activeItem && activeItem.id === item.id;
+                                        const subNotifs = notifications.filter(n => n.subItemId === item.id && !n.isRead).length;
+
+                                        return (
+                                            <div key={item.id} className="relative group animate-fade-up-delayed" style={{ animationDelay: `${idx * 40}ms` }}>
+                                                <button 
+                                                    onClick={() => {
+                                                        if (item.link && item.link.includes('page=map')) window.open(item.link, '_blank');
+                                                        else { onSelectApp(displayApp.id, item.id); setMenuOpen(false); }
+                                                    }}
+                                                    className={`w-full text-left px-4 py-3.5 md:py-3 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-between group
+                                                        ${isActive ? 'bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
+                                                >
+                                                    <div className="flex items-center">
+                                                        <span className="truncate">{item.title[language] || item.title.id || item.title}</span>
+                                                        {subNotifs > 0 && <span className="ml-2 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">{subNotifs}</span>}
+                                                    </div>
+                                                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600"></div>}
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex-1 relative w-full h-full bg-white md:rounded-2xl shadow-sm md:border border-slate-200 flex flex-col overflow-hidden">
+                        
+                        <div className="h-14 md:h-16 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center px-4 md:px-6 justify-between shadow-sm z-20 relative">
+                            <div className="flex items-center space-x-2 md:space-x-3">
+                                {displayApp?.details && displayApp.details.length > 0 && activeSubItemId && (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); onSelectApp(displayApp.id, null); }}
+                                        className="p-2 -ml-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors" 
+                                        title={language === 'en' ? 'Back to Sub-Modules' : 'Kembali ke Daftar Sub-Modul'}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                                    </button>
+                                )}
+                                {displayApp?.details && displayApp.details.length > 0 && activeSubItemId && (
+                                    <div className="w-px h-5 bg-slate-200 mx-0.5 md:mx-1"></div>
+                                )}
+                                {displayApp?.details && displayApp.details.length > 0 && (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); setMenuOpen(!isMenuOpen); }}
+                                        className={`p-2 ${!activeSubItemId ? '-ml-2' : ''} rounded-lg transition-colors ${isMenuOpen ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'}`} 
+                                        title={language === 'en' ? 'Toggle Menu' : 'Buka/Tutup Menu'}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" /></svg>
+                                    </button>
+                                )}
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">{displayApp?.name || 'Sistem'}</span>
+                                    <h2 className="text-xs md:text-sm font-bold text-slate-800 truncate max-w-[150px] sm:max-w-[200px] md:max-w-xs">{activeItem ? (activeItem.title[language] || activeItem.title.id || activeItem.title) : (displayApp?.name || 'Dashboard')}</h2>
+                                </div>
+                            </div>
+                            
+                            {/* Panel Kanan Header: Loading State & Refresh Button */}
+                            <div className="flex items-center gap-2">
+                                {activeUrl && !loadedUrls.includes(activeUrl) && isUnified && (
+                                    <div className="flex items-center space-x-1.5 md:space-x-2 text-[10px] md:text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1.5 rounded-full animate-pulse-subtle">
+                                        <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        <span className="hidden sm:inline">{language === 'en' ? 'Loading Data...' : 'Memuat Data...'}</span>
+                                        <span className="sm:hidden">{language === 'en' ? 'Loading...' : 'Memuat...'}</span>
+                                    </div>
+                                )}
+                                
+                                {activeUrl && isUnified && (
+                                    <button
+                                        onClick={handleRefresh}
+                                        disabled={!loadedUrls.includes(activeUrl)}
+                                        className={`p-2 rounded-lg transition-colors flex items-center justify-center ${!loadedUrls.includes(activeUrl) ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:bg-slate-100 hover:text-indigo-600 shadow-sm border border-transparent hover:border-slate-200'}`}
+                                        title={language === 'en' ? 'Refresh Page' : 'Muat Ulang Halaman'}
+                                    >
+                                        <svg className={`w-4 h-4 md:w-5 md:h-5 ${!loadedUrls.includes(activeUrl) ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex-1 relative w-full h-full bg-slate-50 overflow-hidden">
+                            
+                            {activeUrl && !loadedUrls.includes(activeUrl) && isUnified && (
+                                <div className="absolute inset-0 p-6 md:p-8 flex flex-col space-y-6 z-10 bg-white">
+                                    <div className="flex space-x-4 items-center mb-4">
+                                        <div className="h-10 w-10 md:h-12 md:w-12 bg-slate-200 rounded-full animate-pulse"></div>
+                                        <div className="space-y-2 flex-1">
+                                            <div className="h-3 md:h-4 bg-slate-200 rounded w-1/3 md:w-1/4 animate-pulse"></div>
+                                            <div className="h-2 md:h-3 bg-slate-200 rounded w-1/4 md:w-1/6 animate-pulse"></div>
+                                        </div>
+                                    </div>
+                                    <div className="h-32 md:h-40 bg-slate-100 rounded-2xl animate-pulse"></div>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                                        <div className="h-20 md:h-24 bg-slate-100 rounded-xl animate-pulse"></div>
+                                        <div className="h-20 md:h-24 bg-slate-100 rounded-xl animate-pulse"></div>
+                                        <div className="hidden md:block h-24 bg-slate-100 rounded-xl animate-pulse"></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {allUrls.map((url) => {
+                                const isYouTube = url.includes('youtube.com/embed');
+                                const finalUrl = isYouTube && !url.includes('enablejsapi=1') 
+                                    ? (url.includes('?') ? `${url}&enablejsapi=1` : `${url}?enablejsapi=1`) 
+                                    : url;
+
+                                const refreshCount = refreshKeys[url] || 0; // Ambil nilai counter refresh untuk iframe ini
+
+                                return (
+                                    <iframe 
+                                        key={`${url}-rev-${refreshCount}`} // Modifikasi key di sini
+                                        data-original-url={url}
+                                        src={finalUrl} 
+                                        className={`content-iframe absolute inset-0 w-full h-full border-none transition-opacity duration-300 
+                                            ${url === activeUrl && isUnified ? 'z-10 opacity-100 pointer-events-auto' : 'z-0 opacity-0 pointer-events-none'}`
+                                        }
+                                        title={`Content-${url}`} 
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                        allowFullScreen 
+                                        onLoad={() => onIframeLoad(url)}
+                                    />
+                                );
+                            })}
+
+                            {!activeUrl && isUnified && displayApp?.details && displayApp.details.length > 0 ? (
+                                <div className="absolute inset-0 z-10 overflow-y-auto p-4 sm:p-6 md:p-8 lg:p-10 bg-slate-50 hide-scrollbar pb-24">
+                                    <div className="max-w-6xl mx-auto animate-fade-up">
+                                        <div className="mb-6 md:mb-8 text-center sm:text-left">
+                                            <h2 className="text-xl md:text-2xl font-extrabold text-slate-800 tracking-tight">{language === 'en' ? `Module ${displayApp.name}` : `Modul ${displayApp.name}`}</h2>
+                                            <p className="text-xs md:text-sm text-slate-500 mt-1">{language === 'en' ? 'Select a sub-module you want to open from the menu below.' : 'Pilih sub-modul yang ingin Anda buka dari menu di bawah ini.'}</p>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                                            {displayApp.details.map((item, idx) => {
+                                                const subNotifs = notifications.filter(n => n.subItemId === item.id && !n.isRead).length;
+
+                                                return (
+                                                    <button 
+                                                        key={item.id}
+                                                        onClick={() => {
+                                                            if (item.link && item.link.includes('page=map')) window.open(item.link, '_blank');
+                                                            else onSelectApp(displayApp.id, item.id);
+                                                        }}
+                                                        className="bg-gradient-to-b from-white to-slate-50/50 group rounded-3xl md:rounded-[2rem] border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all duration-300 p-5 md:p-6 flex flex-col items-start text-left relative overflow-hidden transform hover:-translate-y-1"
+                                                        style={{ animationDelay: `${idx * 40}ms` }}
+                                                    >
+                                                        {subNotifs > 0 && (
+                                                            <div className="absolute top-4 right-4 z-20 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-md border-2 border-white animate-bubble-pop">
+                                                                {subNotifs > 9 ? '9+' : subNotifs}
+                                                            </div>
+                                                        )}
+
+                                                        <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-gradient-to-br from-indigo-100/60 to-blue-100/60 rounded-full opacity-50 group-hover:scale-[2.5] transition-transform duration-700 ease-out z-0"></div>
+                                                        
+                                                        <div className="relative z-10 w-12 h-12 md:w-14 md:h-14 bg-indigo-50 text-indigo-600 group-hover:bg-gradient-to-br group-hover:from-indigo-500 group-hover:to-blue-600 group-hover:text-white rounded-2xl mb-4 md:mb-5 flex items-center justify-center transition-all duration-300 shadow-sm group-hover:shadow-indigo-500/30 group-hover:shadow-lg">
+                                                            {getIcon(displayApp.iconStr, "w-6 h-6 md:w-7 md:h-7")}
+                                                        </div>
+                                                        
+                                                        <h3 className="relative z-10 font-bold text-base md:text-lg text-slate-800 group-hover:text-indigo-900 leading-tight mb-1.5 md:mb-2">{item.title[language] || item.title.id || item.title}</h3>
+                                                        <p className="relative z-10 text-[11px] md:text-xs font-medium text-slate-500 line-clamp-2 leading-relaxed">{language === 'en' ? `Access forms and data for ${item.title.en || item.title}.` : `Akses formulir dan data untuk ${item.title.id || item.title}.`}</p>
+                                                        
+                                                        <div className="relative z-10 mt-5 md:mt-6 flex items-center text-[11px] md:text-xs font-bold text-indigo-600 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all duration-300 transform sm:translate-y-2 group-hover:translate-y-0">
+                                                            <span className="bg-indigo-100/80 shadow-sm border border-indigo-200/50 px-3 md:px-4 py-1.5 rounded-full flex items-center">
+                                                                {language === 'en' ? 'Open Application' : 'Buka Aplikasi'}
+                                                                <svg className="w-3 h-3 md:w-4 md:h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : !activeUrl && isUnified && (
+                                <div className="absolute inset-0 flex items-center justify-center h-full text-slate-400 flex-col z-0 p-6 text-center bg-[#f4f7fe]">
+                                    <svg className="h-16 w-16 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                                    <p className="font-medium text-sm">{language === 'en' ? 'Select a menu from the top left to view content' : 'Pilih menu dari pojok kiri atas untuk melihat konten'}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const LoginPage = ({ onLogin, onGuestLogin, onRequestAccess, userEmail, userName, isLoading, loginStatus, loginAppearance, language }) => {
+            const vidUrl = loginAppearance?.videoUrl !== undefined ? loginAppearance.videoUrl : "https://www.youtube.com/embed/M7lc1UVf-VE?autoplay=1&mute=1&loop=1&playlist=M7lc1UVf-VE&controls=0&playsinline=1&rel=0&showinfo=0&disablekb=1";
+            const vidOpacity = loginAppearance?.opacity !== undefined ? loginAppearance.opacity : 25;
+
+            return (
+                <div className="min-h-screen flex w-full bg-[#f4f7fe] overflow-hidden font-sans">
+                    <div className="hidden lg:flex flex-1 bg-slate-900 relative flex-col justify-between p-12 overflow-hidden z-10">
+                        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-slate-900">
+                            {vidUrl && (
+                                <iframe 
+                                    src={vidUrl}
+                                    className="absolute top-1/2 left-1/2 w-[200%] h-[200%] max-w-none transform -translate-x-1/2 -translate-y-1/2 mix-blend-luminosity"
+                                    style={{ opacity: vidOpacity / 100 }}
+                                    allow="autoplay; encrypted-media"
+                                    frameBorder="0"
+                                ></iframe>
+                            )}
+                        </div>
+
+                        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-indigo-900/80 z-0 pointer-events-none"></div>
+
+                        <div className="absolute top-[-10%] left-[-10%] w-[40rem] h-[40rem] bg-[#3b4bdf] rounded-full mix-blend-multiply filter blur-[100px] opacity-30 animate-pulse-subtle z-0"></div>
+                        <div className="absolute bottom-[-10%] right-[-10%] w-[40rem] h-[40rem] bg-indigo-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-20 animate-pulse-subtle z-0" style={{ animationDelay: '1.5s' }}></div>
+                        
+                        <div className="relative z-10 animate-fade-up">
+                            <div className="flex items-center space-x-3 mb-12">
+                                <div className="bg-white px-4 py-2.5 rounded-xl shadow-lg border border-slate-200/50 flex items-center justify-center">
+                                    <VopakLogo className="h-6 w-auto" />
+                                </div>
+                                <span className="text-white font-bold tracking-widest text-sm uppercase">Vopak Terminal Jakarta</span>
+                            </div>
+                            
+                            <h1 className="text-5xl font-black text-white tracking-tight leading-tight mb-6 drop-shadow-lg">
+                                Digital Integrated <br/>
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-cyan-300">Application System</span>
+                            </h1>
+                            <p className="text-slate-200 text-lg max-w-lg leading-relaxed mb-12 drop-shadow-md">
+                                {language === 'en' 
+                                    ? 'A smart centralized platform to manage, monitor, and authorize all operational activities and work permits with the highest safety standards.' 
+                                    : 'Platform terpusat pintar untuk mengelola, memantau, dan mengotorisasi seluruh aktivitas operasional dan perizinan kerja dengan standar keamanan tertinggi.'}
+                            </p>
+                            
+                            <div className="space-y-6 max-w-lg bg-slate-900/40 p-6 rounded-3xl backdrop-blur-md border border-white/10">
+                                <div className="flex items-start">
+                                    <div className="bg-[#3b4bdf]/40 p-3 rounded-xl mr-5 text-indigo-300 border border-[#3b4bdf]/50 shadow-inner">
+                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-white font-bold text-lg mb-1">{language === 'en' ? 'Integrated Permit Management' : 'Manajemen Permit Terpadu'}</h3>
+                                        <p className="text-slate-300 text-sm leading-relaxed">{language === 'en' ? 'Submit, review, and approve work permits (Hot/Cold Work) paperlessly in real-time.' : 'Ajukan, tinjau, dan setujui izin kerja (Hot Work/Cold Work) tanpa dokumen fisik secara real-time.'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start">
+                                    <div className="bg-emerald-500/20 p-3 rounded-xl mr-5 text-emerald-400 border border-emerald-500/30 shadow-inner">
+                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-white font-bold text-lg mb-1">{language === 'en' ? 'LOTO & Certification Security' : 'Keamanan LOTO & Sertifikasi'}</h3>
+                                        <p className="text-slate-300 text-sm leading-relaxed">{language === 'en' ? 'Integration of energy isolation modules (LOTO) and centralized HSE certificate storage.' : 'Integrasi modul isolasi energi (LOTO) dan penyimpanan sertifikat K3 yang tersentralisasi.'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="relative z-10 flex justify-between items-center text-slate-400 text-xs font-bold uppercase tracking-wider animate-fade-up" style={{ animationDelay: '0.2s' }}>
+                            <span>&copy; {new Date().getFullYear()} Vopak Terminal Jakarta</span>
+                            <span className="flex items-center"><span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse"></span> System Online & Secured</span>
+                        </div>
+                    </div>
+
+                    <div className="w-full lg:w-[400px] xl:w-[450px] shrink-0 flex flex-col justify-center px-6 sm:px-12 bg-white relative z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.05)] pb-10 pt-4 md:py-0">
+                        <div className="w-full max-w-sm mx-auto space-y-6 md:space-y-8 animate-fade-up">
+                            
+                            <div className="lg:hidden text-center flex flex-col items-center mb-4 md:mb-8 pt-6">
+                                <div className="bg-slate-50 px-5 py-3 rounded-2xl shadow-sm border border-slate-100 mb-4 flex items-center justify-center w-full max-w-[180px]">
+                                    <VopakLogo className="h-8 w-auto" />
+                                </div>
+                                <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">DIAS</h2>
+                                <p className="text-slate-500 text-xs sm:text-sm font-semibold">Vopak Terminal Jakarta</p>
+                            </div>
+
+                            <div className="text-center lg:text-left">
+                                <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight mb-2">{language === 'en' ? 'Access Authorization' : 'Otorisasi Akses'}</h2>
+                                <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
+                                    {language === 'en' 
+                                        ? <>System uses secure authentication via <b>Google Workspace</b>. We have detected your active credentials.</> 
+                                        : <>Sistem menggunakan otentikasi aman melalui <b>Google Workspace</b>. Kami telah mendeteksi kredensial aktif Anda.</>}
+                                </p>
+                            </div>
+
+                            <div className="bg-[#f8f9fa] border border-slate-100 rounded-[2rem] p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 flex justify-between items-center">
+                                    <span>{language === 'en' ? 'Detected Session' : 'Sesi Terdeteksi'}</span>
+                                    <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </div>
+                                
+                                <div className="flex items-center space-x-3 sm:space-x-4 mb-6 sm:mb-8 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-100 group cursor-default">
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#3b4bdf] to-blue-500 text-white rounded-full flex items-center justify-center font-bold text-lg sm:text-xl uppercase shadow-sm group-hover:scale-105 transition-transform shrink-0">
+                                        {userName ? userName.charAt(0) : (userEmail ? userEmail.charAt(0) : '?')}
+                                    </div>
+                                    <div className="overflow-hidden flex-1">
+                                        <p className="text-xs sm:text-sm font-bold text-slate-800 truncate" title={userName || userEmail}>{userName || userEmail || (language === 'en' ? 'Public User' : 'Pengguna Publik')}</p>
+                                        {userName && <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 mt-0.5 truncate">{userEmail}</p>}
+                                        <p className="text-[10px] sm:text-[11px] text-emerald-600 font-bold mt-1 flex items-center bg-emerald-50/50 w-fit px-2 py-0.5 rounded-lg border border-emerald-100/50">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span> {language === 'en' ? 'Valid Credentials' : 'Kredensial Valid'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {loginStatus === 'unregistered' ? (
+                                    <div className="space-y-3 animate-fade-up">
+                                        <div className="bg-amber-50/50 border border-amber-100 p-3 rounded-xl mb-4 text-center">
+                                            <p className="text-xs font-bold text-amber-700">{language === 'en' ? 'Restricted Access' : 'Akses Terbatas'}</p>
+                                            <p className="text-[10px] sm:text-[11px] text-amber-600 mt-1">{language === 'en' ? 'Your email is not registered in the DIAS system. Please request access or continue as a Guest.' : 'Email Anda belum terdaftar di sistem DIAS. Silakan ajukan akses atau masuk sebagai Tamu.'}</p>
+                                        </div>
+                                        <button
+                                            onClick={onRequestAccess}
+                                            disabled={isLoading}
+                                            className="w-full py-3 sm:py-3.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#3b4bdf] hover:bg-indigo-700 transition-all shadow-md hover:shadow-[#3b4bdf]/30"
+                                        >
+                                            {language === 'en' ? 'Request System Access' : 'Ajukan Akses Sistem (Request)'}
+                                        </button>
+                                        <button
+                                            onClick={onGuestLogin}
+                                            disabled={isLoading}
+                                            className="w-full py-3 sm:py-3.5 rounded-xl text-xs sm:text-sm font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-all shadow-sm"
+                                        >
+                                            {language === 'en' ? 'Continue as Guest' : 'Lanjutkan sebagai Tamu (Guest)'}
+                                        </button>
+                                    </div>
+                                ) : loginStatus === 'request_sent' ? (
+                                    <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl text-center animate-fade-up">
+                                        <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                                        </div>
+                                        <p className="text-xs font-bold text-emerald-700">{language === 'en' ? 'Request Sent!' : 'Permintaan Terkirim!'}</p>
+                                        <p className="text-[10px] sm:text-[11px] text-emerald-600 mt-1 mb-4">{language === 'en' ? 'The admin will review your request. Please check back later.' : 'Admin akan meninjau permintaan Anda. Silakan cek kembali nanti secara berkala.'}</p>
+                                        <button
+                                            onClick={onGuestLogin}
+                                            className="w-full py-2.5 rounded-xl text-xs font-bold text-emerald-700 bg-white border border-emerald-200 hover:bg-emerald-50 transition-all shadow-sm"
+                                        >
+                                            {language === 'en' ? 'Enter as Guest' : 'Masuk sebagai Tamu (Guest)'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={onLogin}
+                                        disabled={isLoading}
+                                        className={`w-full py-3.5 sm:py-4 rounded-xl text-xs sm:text-sm font-bold text-white transition-all shadow-md flex items-center justify-center 
+                                            ${isLoading ? 'bg-slate-300 cursor-not-allowed shadow-none' : 'bg-[#3b4bdf] hover:bg-indigo-700 hover:shadow-[#3b4bdf]/30 transform hover:-translate-y-0.5'}`}
+                                    >
+                                        {isLoading ? (
+                                            <><svg className="animate-spin -ml-1 mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> {language === 'en' ? 'Checking Data...' : 'Memeriksa Data...'}</>
+                                        ) : (
+                                            <>{language === 'en' ? 'Enter Dashboard' : 'Masuk ke Dashboard'} <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg></>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+                            
+                            <p className="text-center text-[10px] sm:text-xs text-slate-400 pt-4">
+                                {language === 'en' ? 'If this is not your account or you face access issues, ' : 'Jika ini bukan akun Anda atau mengalami kendala akses, '} <br/>
+                                <a href="#" className="text-[#3b4bdf] hover:text-indigo-800 hover:underline font-bold mt-1 inline-block">{language === 'en' ? 'Contact IT Help Desk' : 'Hubungi IT Help Desk'}</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const SystemDashboard = ({ allApps, onSelectApp, userEmail, userName, language, permitsData, calendarEvents, loadingEvents, notifications }) => {
+            // Widget Waktu
+            const [currentTime, setCurrentTime] = useState(new Date());
+            useEffect(() => {
+                const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            // Widget Cuaca (Menggunakan Open-Meteo API tanpa key, lokasi Jakarta)
+            const [weather, setWeather] = useState({ temp: '--', desc: 'Loading...', icon: null });
+            useEffect(() => {
+                const fetchWeather = async () => {
+                    try {
+                        const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-6.2088&longitude=106.8456&current_weather=true');
+                        const data = await res.json();
+                        if (data.current_weather) {
+                            const code = data.current_weather.weathercode;
+                            let desc = "Clear";
+                            let icon = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />; // Sun
+                            
+                            if (code >= 1 && code <= 3) { desc = "Cloudy"; icon = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />; }
+                            else if (code >= 45 && code <= 48) { desc = "Foggy"; icon = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />; }
+                            else if (code >= 51 && code <= 67) { icon = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14v2m-4-2v2m8-2v2m-4 6v-4m-4 4v-4m8 4v-4M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />; desc = "Rainy"; }
+                            if (code >= 95) { icon = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />; desc = "Storm"; }
+
+                            setWeather({ temp: Math.round(data.current_weather.temperature), desc, icon });
+                        }
+                    } catch (e) {
+                        console.error("Gagal mengambil data cuaca", e);
+                        setWeather({ temp: '--', desc: 'N/A', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /> });
+                    }
+                };
+                fetchWeather();
+            }, []);
+
+            // Data Pengguna
+            const activePermits = Object.values(permitsData).filter(p => p.status === 'PROSES' || p.status === 'ONLINE');
+            const permitListToDisplay = activePermits.sort((a, b) => {
+                const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+                const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+                return timeB - timeA;
+            }).slice(0, 6);
+
+            const greetingName = userName ? userName.split(' ')[0] : (userEmail ? userEmail.split('@')[0] : (language === 'en' ? 'User' : 'Pengguna'));
+
+            // AI Greeting Widget (Gemini API)
+            const [aiGreeting, setAiGreeting] = useState('');
+            const [isAiLoading, setIsAiLoading] = useState(true);
+
+            useEffect(() => {
+                if (weather.desc === 'Loading...' || !greetingName) return;
+
+                let isMounted = true;
+                const fetchAiGreeting = async () => {
+                    let attempt = 0;
+                    let success = false;
+                    setIsAiLoading(true);
+
+                    const hour = new Date().getHours();
+                    const timeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+                    const timeId = hour < 12 ? 'pagi' : hour < 15 ? 'siang' : hour < 18 ? 'sore' : 'malam';
+
+                    while (attempt < 3 && !success && isMounted) {
+                        try {
+                            const apiKey = "AIzaSyDnablzR0WQc-Om9aR-UiwJiixVvVvx3uk"; 
+                            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                            
+                            const prompt = language === 'en' 
+                                ? `You are an AI assistant. Write a highly engaging, warm, and natural dashboard greeting for a user named ${greetingName}. Time: ${timeOfDay}. Weather: ${weather.temp}°C, ${weather.desc}. Make it feel personal and motivating. Max 1 short sentence. Respond ONLY with the greeting text. No quotes, no markdown, no emojis.`
+                                : `Anda adalah asisten AI. Tuliskan sapaan dashboard yang sangat hangat, interaktif, dan natural untuk pengguna bernama ${greetingName}. Waktu: ${timeId}. Cuaca: ${weather.temp}°C, ${weather.desc}. Buat agar terasa personal dan memotivasi untuk memulai pekerjaan. Maksimal 1 kalimat singkat. Berikan HANYA teks sapaannya saja. Tanpa tanda kutip, tanpa markdown, tanpa emoji.`;
+
+                            const response = await fetch(apiUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    contents: [{ parts: [{ text: prompt }] }],
+                                    generationConfig: { temperature: 0.8, maxOutputTokens: 50 }
+                                })
+                            });
+
+                            if (!response.ok) throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                            const data = await response.json();
+                            const text = data.candidates[0].content.parts[0].text;
+                            
+                            if (isMounted) {
+                                setAiGreeting(text.replace(/"/g, '').trim());
+                                success = true;
+                            }
+                        } catch (e) {
+                            attempt++;
+                            console.error('Failed to fetch AI greeting, attempt:', attempt, e);
+                            if (attempt >= 3 && isMounted) {
+                                setAiGreeting(language === 'en' ? `Good ${timeOfDay}, ${greetingName}! Welcome to your dashboard.` : `Selamat ${timeId}, ${greetingName}! Selamat datang di dashboard Anda.`);
+                            }
+                            await new Promise(res => setTimeout(res, 1500));
+                        }
+                    }
+                    if (isMounted) setIsAiLoading(false);
+                };
+
+                fetchAiGreeting();
+                return () => { isMounted = false; };
+            }, [weather.desc, greetingName, language]);
+
+            // Highlight Tugas (Menunggu Aksi Saya)
+            const pendingMyActionCount = notifications.filter(n => !n.isRead).length;
+
+            // Highlight Agenda Hari Ini
+            const todayEvents = calendarEvents.filter(e => {
+                const date = new Date(e.startTime);
+                const today = new Date();
+                return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+            });
+            const nextEvent = todayEvents.find(e => new Date(e.startTime) > new Date());
+
+            // Format Tanggal
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const timeString = currentTime.toLocaleTimeString(language === 'en' ? 'en-US' : 'id-ID', { hour: '2-digit', minute: '2-digit' });
+            const dateString = currentTime.toLocaleDateString(language === 'en' ? 'en-US' : 'id-ID', dateOptions);
+
+            return (
+                <div className="w-full max-w-6xl mx-auto space-y-6 animate-fade-up pb-20">
+                    
+                    {/* NEW BANNER MATCHING THE REFERENCE IMAGE */}
+                    <div className="bg-gradient-to-r from-[#175279] to-[#5a68d0] rounded-2xl p-6 md:p-8 text-white shadow-2xl relative overflow-hidden flex flex-col lg:flex-row gap-8 justify-between items-stretch">
+                        
+                        {/* Left Column: Time, Weather, Greeting */}
+                        <div className="relative z-10 flex flex-col w-full lg:w-[60%] justify-center">
+                            
+                            {/* Time and Weather Pills Row */}
+                            <div className="flex flex-wrap gap-4 mb-8">
+                                {/* Time Widget */}
+                                <div className="border border-white/20 bg-white/10 backdrop-blur-md rounded-xl px-4 py-2 flex items-center gap-3 shadow-sm">
+                                    <div className="text-white/70">
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    </div>
+                                    <div>
+                                        <div className="text-lg font-black tracking-tight leading-none mb-0.5">{timeString}</div>
+                                        <div className="text-[10px] text-white/80 font-medium">{dateString}</div>
+                                    </div>
+                                </div>
+                                
+                                {/* Weather Widget */}
+                                <div className="border border-white/20 bg-white/10 backdrop-blur-md rounded-xl px-4 py-2 flex items-center gap-3 shadow-sm">
+                                    <div className="text-white/70">
+                                        {weather.icon ? (
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">{weather.icon}</svg>
+                                        ) : (
+                                            <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <div className="text-lg font-black tracking-tight leading-none mb-0.5">{weather.temp}°C</div>
+                                        <div className="text-[10px] text-white/80 font-medium">Jakarta - {weather.desc}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* AI Badge & Greeting */}
+                            <div>
+                                <div className="inline-flex items-center gap-1.5 bg-[#4378ed] text-white text-[10px] font-bold px-3 py-1 rounded-full mb-3 shadow-md border border-[#3b82f6]/50">
+                                    <span className="text-yellow-300 text-xs">★</span> AI ASSISTANT
+                                </div>
+                                
+                                {isAiLoading ? (
+                                    <div className="animate-pulse space-y-2 mt-2">
+                                        <div className="h-8 bg-white/20 rounded-lg w-3/4"></div>
+                                        <div className="h-4 bg-white/10 rounded-lg w-1/2"></div>
+                                    </div>
+                                ) : (
+                                    <h1 className="text-3xl lg:text-4xl font-extrabold mb-3 tracking-tight drop-shadow-md leading-tight">
+                                        <span dangerouslySetInnerHTML={{ __html: aiGreeting.replace(new RegExp(`(${greetingName})`, 'i'), `<span class="text-white font-black">$1</span>`) }}></span>
+                                    </h1>
+                                )}
+                                
+                                <p className="text-white/80 text-sm md:text-base leading-relaxed">
+                                    {language === 'en' ? 'Here is a quick overview of your operations and pending tasks today.' : 'Berikut adalah ringkasan operasional dan tugas Anda hari ini.'}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        {/* Right Column: Stacked Action Cards */}
+                        <div className="relative z-10 flex flex-col gap-4 w-full lg:w-[400px] shrink-0 justify-center">
+                            
+                            {/* Pending Card */}
+                            <div className="bg-gradient-to-r from-[#8b5cf6]/30 to-[#6366f1]/20 backdrop-blur-sm border border-t-[#ef4444] border-l-[#ef4444] border-r-white/10 border-b-white/10 rounded-2xl p-5 flex items-center gap-5 transition-transform hover:-translate-y-1 duration-300 cursor-default shadow-lg">
+                                <div className="bg-[#a855f7]/40 p-3.5 rounded-2xl text-[#d8b4fe] shadow-inner">
+                                    <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-[11px] text-white/80 font-bold mb-1 uppercase tracking-widest">{language === 'en' ? 'Pending Actions' : 'Menunggu Aksi'}</p>
+                                    <div className="flex items-baseline gap-2.5">
+                                        <span className="text-4xl font-black text-white drop-shadow-sm">{pendingMyActionCount}</span>
+                                        <span className="text-xs text-[#fca5a5] font-semibold">{language === 'en' ? 'tasks need attention' : 'tugas butuh respons'}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Agenda Card */}
+                            <div className="bg-gradient-to-r from-[#3b82f6]/30 to-[#6366f1]/20 backdrop-blur-sm border border-t-[#10b981] border-l-[#10b981] border-r-white/10 border-b-white/10 rounded-2xl p-5 flex items-center gap-5 transition-transform hover:-translate-y-1 duration-300 cursor-default shadow-lg">
+                                <div className="bg-[#3b82f6]/40 p-3.5 rounded-2xl text-[#93c5fd] shadow-inner">
+                                    <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                </div>
+                                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                    <div className="flex justify-between items-center mb-1">
+                                         <p className="text-[11px] text-white/80 font-bold uppercase tracking-widest">{language === 'en' ? "Today's Agenda" : 'Agenda Hari Ini'}</p>
+                                         <div className="bg-[#10b981] text-white text-[11px] font-black px-2 py-0.5 rounded-lg shadow-sm">
+                                            {todayEvents.length}
+                                         </div>
+                                    </div>
+                                    <div className="text-sm text-white/90 font-medium truncate pt-1">
+                                        {nextEvent ? (
+                                            <span className="font-bold text-white tracking-wide">{new Date(nextEvent.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {nextEvent.title}</span>
+                                        ) : (
+                                            <span className="opacity-80">{language === 'en' ? 'No more events today' : 'Tidak ada agenda tersisa'}</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    {/* MAIN MODULES SECTION */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2 space-y-5">
+                            <div className="flex items-center justify-between px-1">
+                                <h2 className="text-base md:text-lg font-bold text-slate-800">{language === 'en' ? 'Main System Modules' : 'Modul Sistem Utama'}</h2>
+                                <span className="text-[10px] md:text-xs font-semibold text-slate-400 bg-slate-200 px-3 py-1 rounded-full">{allApps.filter(app => app.id !== 'home').length} {language === 'en' ? 'Available Modules' : 'Modul Tersedia'}</span>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5">
+                                {allApps.filter(app => app.id !== 'home').map((app, idx) => {
+                                    const appNotifications = notifications.filter(n => n.appId === app.id && !n.isRead).length;
+
+                                    return (
+                                        <button
+                                            key={app.id}
+                                            onClick={() => onSelectApp(app.id)}
+                                            className="bg-white p-5 md:p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all duration-300 text-left group flex flex-col transform hover:-translate-y-1 relative overflow-hidden"
+                                        >
+                                            {appNotifications > 0 && (
+                                                <div className="absolute top-4 right-4 z-20 w-6 h-6 md:w-7 md:h-7 bg-rose-500 text-white rounded-full flex items-center justify-center text-[10px] md:text-[11px] font-black shadow-lg shadow-rose-500/40 border-2 border-white animate-bubble-pop">
+                                                    {appNotifications > 9 ? '9+' : appNotifications}
+                                                </div>
+                                            )}
+
+                                            <div className="absolute -right-8 -top-8 w-24 h-24 bg-indigo-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500 ease-out z-0"></div>
+                                            
+                                            <div className="relative z-10 w-10 h-10 md:w-12 md:h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-3 md:mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-sm">
+                                                {getIcon(app.iconStr, "w-5 h-5 md:w-6 md:h-6")}
+                                            </div>
+                                            <h3 className="relative z-10 font-bold text-sm md:text-base text-slate-800 mb-1 group-hover:text-indigo-700">{app.name}</h3>
+                                            <p className="relative z-10 text-[10px] md:text-xs text-slate-500 line-clamp-2 leading-relaxed">{app.description[language] || app.description.id || app.description}</p>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* SIDE WIDGETS */}
+                        <div className="space-y-6 md:space-y-8">
+                            
+                            <div className="bg-white p-5 md:p-6 rounded-[2rem] border border-slate-200 shadow-sm">
+                                <h2 className="text-sm md:text-base font-bold text-slate-800 mb-4 flex items-center">
+                                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mr-2.5 md:mr-3">
+                                        <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    </div>
+                                    {language === 'en' ? 'Active Permit Status' : 'Status Permit Aktif'}
+                                </h2>
+                                <div className="space-y-3">
+                                    {permitListToDisplay.length === 0 ? (
+                                        <div className="text-center py-6">
+                                            <p className="text-xs md:text-sm text-slate-500 font-medium">{language === 'en' ? 'No active permits at the moment.' : 'Tidak ada permit aktif saat ini.'}</p>
+                                        </div>
+                                    ) : (
+                                        permitListToDisplay.map((permit, idx) => {
+                                            const permitNo = permit.permitNumber || permit.file1?.nomorPermit || 'N/A';
+                                            const permitType = permit.type || permit.file1?.tipePermit || 'Unknown Work';
+                                            const rawStatus = permit.status || 'PROSES';
+                                            const rawStage = permit.stage || 'REQUESTED';
+                                            
+                                            let statusColor = 'bg-amber-100 text-amber-700 border-amber-200';
+                                            if (rawStatus === 'ONLINE') statusColor = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                                            else if (rawStatus === 'CLOSED' || rawStage === 'CLOSED') statusColor = 'bg-slate-100 text-slate-600 border-slate-300';
+                                            else if (rawStage === 'REJECTED' || rawStage === 'CANCELLED' || rawStage === 'DELETED') statusColor = 'bg-rose-100 text-rose-700 border-rose-200';
+
+                                            return (
+                                                <div key={idx} className="bg-slate-50 hover:bg-slate-100 transition-colors p-3.5 md:p-4 rounded-2xl border border-slate-100 flex justify-between items-center cursor-default">
+                                                    <div>
+                                                        <p className="text-[11px] md:text-xs font-black text-indigo-700 mb-0.5">{permitNo}</p>
+                                                        <p className="text-[10px] md:text-[11px] text-slate-600 font-semibold">{permitType}</p>
+                                                    </div>
+                                                    <div className="flex flex-col items-end text-right">
+                                                        <span className={`text-[9px] md:text-[10px] font-bold px-2.5 py-1 rounded-md border uppercase tracking-widest ${statusColor}`}>
+                                                            {rawStatus}
+                                                        </span>
+                                                        <span className="text-[8.5px] md:text-[9px] text-slate-400 font-bold mt-1.5 uppercase tracking-wider">
+                                                            {rawStage.replace(/_/g, ' ')}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                                <div className="mt-4 pt-4 border-t border-slate-100 text-center">
+                                    <button onClick={() => onSelectApp('permit')} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center justify-center w-full">
+                                        {language === 'en' ? 'View All Permits' : 'Lihat Semua Permit'}
+                                        <svg className="w-3 h-3 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [apps, setApps] = useState([]);
+            const [usersConfig, setUsersConfig] = useState(null);
+            
+            const [permitsData, setPermitsData] = useState({});
+            const [jsaData, setJsaData] = useState({});
+            const [ptwSettings, setPtwSettings] = useState(null);
+            
+            const [calendarEvents, setCalendarEvents] = useState([]);
+            const [isCalendarLoading, setIsCalendarLoading] = useState(true);
+            
+            const [isFirebaseReady, setIsFirebaseReady] = useState(false);
+            const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [isPreloading, setIsPreloading] = useState(false);
+            
+            const [loginStatus, setLoginStatus] = useState('initial'); 
+            const [userPermissions, setUserPermissions] = useState(null); 
+            
+            const [activeAppId, setActiveAppId] = useState(null);
+            const [activeSubItemId, setActiveSubItemId] = useState(null); 
+            const [language, setLanguage] = useState('en');
+            
+            const [isMenuOpen, setMenuOpen] = useState(false);
+            const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false); 
+            const [isHelpOpen, setIsHelpOpen] = useState(false); 
+            
+            const [notifications, setNotifications] = useState([]);
+            const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+            const [formModalState, setFormModalState] = useState({ isOpen: false, url: '', title: '', permitNumber: '' });
+            const [loadedUrls, setLoadedUrls] = useState([]);
+            const [loginAppearance, setLoginAppearance] = useState(null);
+
+            const openFormModal = (url, title, permitNumber) => setFormModalState({ isOpen: true, url, title, permitNumber });
+            const closeFormModal = () => setFormModalState({ isOpen: false, url: '', title: '', permitNumber: '' });
+
+            useEffect(() => {
+                const initAuth = async () => {
+                    try {
+                        await Promise.all([
+                            signInAnonymously(auth),
+                            signInAnonymously(ptwAuth)
+                        ]);
+                    } catch (e) {
+                        console.error("Auth error", e);
+                    }
+                };
+                
+                initAuth();
+
+                const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+                    setUser(currentUser);
+                    setIsFirebaseReady(true);
+                    setIsCheckingAuth(false);
+                });
+
+                return () => unsubscribe();
+            }, []);
+
+            useEffect(() => {
+                if (!user) return;
+
+                const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'appConfig');
+                const unsubConfig = onSnapshot(configRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        setApps(data.apps || []);
+                        setLoginAppearance(data.loginAppearance || { videoUrl: "https://www.youtube.com/embed/M7lc1UVf-VE?autoplay=1&mute=1&loop=1&playlist=M7lc1UVf-VE&controls=0&playsinline=1&rel=0&showinfo=0&disablekb=1", opacity: 25 });
+                    } else {
+                        const seedData = initialAppData.filter(a => a.id !== 'home');
+                        const seedAppearance = { videoUrl: "https://www.youtube.com/embed/M7lc1UVf-VE?autoplay=1&mute=1&loop=1&playlist=M7lc1UVf-VE&controls=0&playsinline=1&rel=0&showinfo=0&disablekb=1", opacity: 25 };
+                        setDoc(configRef, { apps: seedData, loginAppearance: seedAppearance });
+                        setApps(seedData);
+                        setLoginAppearance(seedAppearance);
+                    }
+                });
+
+                const usersRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'users');
+                const unsubUsers = onSnapshot(usersRef, (docSnap) => {
+                    if (docSnap.exists()) setUsersConfig(docSnap.data());
+                });
+
+                const permitsCol = collection(ptwDb, 'artifacts', ptwAppId, 'public', 'data', 'permits');
+                const unsubPermits = onSnapshot(permitsCol, (snapshot) => {
+                    if (!snapshot.empty) {
+                        const currentPermits = {};
+                        snapshot.forEach(doc => { currentPermits[doc.id] = doc.data(); });
+                        setPermitsData(currentPermits);
+                    } else { setPermitsData({}); }
+                }, (error) => console.error("Gagal memuat data permit PTW:", error));
+
+                const jsaCol = collection(ptwDb, 'artifacts', ptwAppId, 'public', 'data', 'jsa');
+                const unsubJsa = onSnapshot(jsaCol, (snapshot) => {
+                    if (!snapshot.empty) {
+                        const currentJsa = {};
+                        snapshot.forEach(doc => { currentJsa[doc.id] = doc.data(); });
+                        setJsaData(currentJsa);
+                    } else { setJsaData({}); }
+                }, (error) => console.error("Gagal memuat data JSA PTW:", error));
+
+                const ptwSettingsDoc = doc(ptwDb, 'artifacts', ptwAppId, 'public', 'settings');
+                const unsubPtwSettings = onSnapshot(ptwSettingsDoc, (docSnap) => {
+                    if (docSnap.exists()) setPtwSettings(docSnap.data());
+                }, (error) => console.error("Gagal memuat settings PTW:", error));
+
+                setIsCalendarLoading(true);
+                if (typeof google !== 'undefined' && google.script) {
+                    // Berjalan di dalam Google Apps Script, panggil fungsi backend
+                    google.script.run
+                        .withSuccessHandler((events) => {
+                            setCalendarEvents(events || []);
+                            setIsCalendarLoading(false);
+                        })
+                        .withFailureHandler((error) => {
+                            console.error("Gagal mengambil data dari Google Calendar:", error);
+                            setCalendarEvents([]);
+                            setIsCalendarLoading(false);
+                        })
+                        .getUserCalendarEvents(); // <-- Memanggil fungsi dari Code.gs
+                } else {
+                    // Mode Testing/Lokal: Tampilkan dummy data agar UI bisa dilihat
+                    console.log("⚠️ Berjalan di luar Google Apps Script. Menampilkan kalender dummy.");
+                    const now = new Date();
+                    const dummyEvents = [
+                        { title: "Team Weekly Sync", startTime: new Date(now.getTime() + 1 * 60 * 60 * 1000).toISOString() },
+                        { title: "Safety Inspection Brief", startTime: new Date(now.getTime() + 3.5 * 60 * 60 * 1000).toISOString() }
+                    ];
+                    setCalendarEvents(dummyEvents);
+                    setIsCalendarLoading(false);
+                }
+
+                return () => {
+                    unsubConfig();
+                    unsubUsers();
+                    unsubPermits();
+                    unsubJsa();
+                    unsubPtwSettings();
+                };
+            }, [user]);
+
+            // DIUBAH: Jika window.__USER_EMAIL__ kosong atau string template belum terganti ('<?='), paksa default ke 'abdullah.rosprianto@vopak.com'
+            const displayUserEmail = typeof window.__USER_EMAIL__ !== 'undefined' && window.__USER_EMAIL__ !== '' && !window.__USER_EMAIL__.includes('<?=') 
+                ? window.__USER_EMAIL__ 
+                : 'abdullah.rosprianto@vopak.com';
+
+            useEffect(() => {
+                if (Object.keys(permitsData).length === 0 && Object.keys(jsaData).length === 0) return;
+                
+                const newNotifs = [];
+
+                const isNameMatch = (val, email) => {
+                    if (!val || !email) return false;
+                    const v = val.toString().toLowerCase().trim();
+                    const e = email.toLowerCase().trim();
+                    if (v === e) return true;
+                    const tokens = e.split('@')[0].split('.');
+                    return tokens.some(t => t.length >= 3 && (v.includes(t) || t.includes(v)));
+                };
+
+                const employees = ptwSettings?.employees || [];
+                const me = employees.find(e => e.email.toLowerCase() === displayUserEmail.toLowerCase() || (e.secondaryEmail && e.secondaryEmail.toLowerCase() === displayUserEmail.toLowerCase()));
+                const myRoles = me?.systemRoles || (me?.systemRole ? [me.systemRole] : []);
+
+                // Hapus bypass ADMIN untuk notifikasi harian agar ADMIN tidak spam.
+                // ADMIN hanya dapat akses menu, tapi notif disesuaikan dengan peran kerja real di lapangan.
+                const isUserEngineer = myRoles.includes('ENGINEER');
+                const isUserAA = myRoles.includes('AA') || myRoles.includes('AREA_AUTHORITY');
+                const isUserTechnician = myRoles.includes('TECHNICIAN');
+                const isUserAssessor = myRoles.includes('ASSESSOR');
+                const isUserApprover = myRoles.includes('APPROVER');
+                const isSuperAdmin = myRoles.includes('ADMIN'); // Simpan jika butuh notifikasi kritis/system
+
+                Object.keys(permitsData).forEach(key => {
+                    const permit = permitsData[key];
+                    const f1 = permit.file1 || {};
+                    
+                    if (!permit.permitNumber && !f1.nomorPermit) return;
+                    const permitIdShow = permit.permitNumber || f1.nomorPermit;
+                    
+                    let notifTime = permit.createdAt?.toMillis ? new Date(permit.createdAt.toMillis()).toISOString() : new Date().toISOString();
+
+                    const isJobOwner = isNameMatch(permit.jobOwnerEmail || f1.jobOwnerEmail, displayUserEmail) || isNameMatch(permit.requester?.nama || f1.namaPemohon, displayUserEmail) || myRoles.includes('JOB_OWNER');
+                    
+                    const techEmail = permit.authorityChecklist?.emailTeknisi || f1.emailTeknisi;
+                    const isAssignedTech = isUserTechnician || isNameMatch(techEmail, displayUserEmail);
+
+                    if (permit.stage === 'REQUESTED' && isJobOwner) {
+                        newNotifs.push({
+                            id: `JO-${permitIdShow}`, appId: 'app_1777363186769', subItemId: 'app_1777363186769', moduleName: 'Permit (Approval)',
+                            message: { id: `Permit ${permitIdShow} menunggu persetujuan awal Anda sebagai Pemilik Pekerjaan.`, en: `Permit ${permitIdShow} is waiting for your initial approval as Job Owner.` }, timestamp: notifTime, isRead: false 
+                        });
+                    }
+
+                    if (permit.stage === 'JOB_OWNER_APPROVED' && isUserEngineer) {
+                        if (permit.jobOwnerApproval?.timestamp?.toMillis) notifTime = new Date(permit.jobOwnerApproval.timestamp.toMillis()).toISOString();
+                        newNotifs.push({
+                            id: `ENG-${permitIdShow}`, appId: 'app_1777363186769', subItemId: 'app_1777363186769', moduleName: 'Permit (Engineer)',
+                            message: { id: `Permit ${permitIdShow} menunggu tinjauan dan persetujuan Engineer.`, en: `Permit ${permitIdShow} is waiting for Engineer review and approval.` }, timestamp: notifTime, isRead: false 
+                        });
+                    }
+
+                    if (permit.stage === 'ENGINEER_APPROVED' && isUserAA) {
+                        if (permit.engineerApproval?.timestamp?.toMillis) notifTime = new Date(permit.engineerApproval.timestamp.toMillis()).toISOString();
+                        newNotifs.push({
+                            id: `AA-ACK-${permitIdShow}`, appId: 'app_1777363186769', subItemId: 'app_1777363186769', moduleName: 'Permit (Otoritas)',
+                            message: { id: `Permit ${permitIdShow} siap ditugaskan ke Teknisi (Acknowledge).`, en: `Permit ${permitIdShow} is ready to be assigned to a Technician (Acknowledge).` }, timestamp: notifTime, isRead: false 
+                        });
+                    }
+
+                    if (permit.stage === 'AA_ACKNOWLEDGED' && isAssignedTech) {
+                        if (permit.authorityChecklist?.approvalData?.timestamp?.toMillis) notifTime = new Date(permit.authorityChecklist.approvalData.timestamp.toMillis()).toISOString();
+                        newNotifs.push({
+                            id: `TECH-ACK-${permitIdShow}`, appId: 'app_1777363186769', subItemId: 'app_1777363186769', moduleName: 'Permit (Teknisi)',
+                            message: { id: `Permit ${permitIdShow} ditugaskan kepada Anda untuk inspeksi lapangan dan Gas Test.`, en: `Permit ${permitIdShow} is assigned to you for field inspection and Gas Test.` }, timestamp: notifTime, isRead: false 
+                        });
+                    }
+
+                    if (permit.stage === 'TECHNICIAN_TESTING_DONE' && isUserAA) {
+                        if (permit.technicianApproval?.timestamp?.toMillis) notifTime = new Date(permit.technicianApproval.timestamp.toMillis()).toISOString();
+                        newNotifs.push({
+                            id: `AA-ONL-${permitIdShow}`, appId: 'app_1777363186769', subItemId: 'app_1777363186769', moduleName: 'Permit (Otoritas)',
+                            message: { id: `Gas Test untuk ${permitIdShow} selesai. Menunggu otorisasi ONLINE dari Anda.`, en: `Gas Test for ${permitIdShow} is complete. Waiting for your ONLINE authorization.` }, timestamp: notifTime, isRead: false 
+                        });
+                    }
+
+                    if (permit.stage === 'CLOSING_REQUESTED' && isUserAA) {
+                        if (permit.jobOwnerClosing?.timestamp?.toMillis) notifTime = new Date(permit.jobOwnerClosing.timestamp.toMillis()).toISOString();
+                        newNotifs.push({
+                            id: `AA-CLS-${permitIdShow}`, appId: 'app_1777363186769', subItemId: 'app_1777363186769', moduleName: 'Permit (Closing)',
+                            message: { id: `Permohonan penutupan (Closing) untuk permit ${permitIdShow}. Menunggu finalisasi AA.`, en: `Closing request for permit ${permitIdShow}. Waiting for AA finalization.` }, timestamp: notifTime, isRead: false 
+                        });
+                    }
+                });
+
+                Object.keys(jsaData).forEach(key => {
+                    const jsa = jsaData[key];
+                    let notifTime = jsa.createdAt?.toMillis ? new Date(jsa.createdAt.toMillis()).toISOString() : new Date().toISOString();
+                    
+                    if (jsa.state === 'pending') {
+                        const currentApproverRole = jsa.chain?.[jsa.currentIndex] || '';
+                        let needsMyApproval = false;
+                        
+                        const roleStr = currentApproverRole.toLowerCase();
+                        if ((roleStr.includes('sheq') || roleStr.includes('assessor')) && isUserAssessor) needsMyApproval = true;
+                        if ((roleStr.includes('manager') || roleStr.includes('director')) && isUserApprover) needsMyApproval = true;
+                        if (roleStr.includes('engineer') && isUserEngineer) needsMyApproval = true;
+                        if (isNameMatch(currentApproverRole, displayUserEmail) || isNameMatch(currentApproverRole, me?.name)) needsMyApproval = true;
+                        
+                        if (needsMyApproval || isSuperAdmin) { // JSA approval logic retains SuperAdmin bypass for now
+                             newNotifs.push({
+                                id: `JSA-${key}`, appId: 'jsa', subItemId: null, moduleName: 'JSA (Review)',
+                                message: { id: `Dokumen JSA ${jsa.data?.jsa_no || key} sedang menunggu tinjauan Anda (${currentApproverRole || 'Otorisator'}).`, en: `JSA Document ${jsa.data?.jsa_no || key} is waiting for your review (${currentApproverRole || 'Authorizer'}).` }, timestamp: notifTime, isRead: false 
+                            });
+                        }
+                    } else if (jsa.state === 'final_review' && isUserApprover) {
+                        newNotifs.push({
+                            id: `JSA-FIN-${key}`, appId: 'jsa', subItemId: null, moduleName: 'JSA (Final Review)',
+                            message: { id: `JSA ${jsa.data?.jsa_no || key} membutuhkan Tinjauan Akhir (Final Review) dari Manager.`, en: `JSA ${jsa.data?.jsa_no || key} requires a Final Review from the Manager.` }, timestamp: notifTime, isRead: false 
+                        });
+                    }
+                });
+
+                setNotifications(prev => {
+                    return newNotifs.map(n => {
+                        const existing = prev.find(p => p.id === n.id);
+                        if (existing) {
+                            return { ...n, isRead: existing.isRead, timestamp: existing.timestamp };
+                        }
+                        return n;
+                    }).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                });
+
+            }, [permitsData, jsaData, ptwSettings, displayUserEmail, language]);
+
+            const visibleApps = useMemo(() => {
+                if (!isFirebaseReady || !userPermissions) return [];
+                let sourceApps = (apps && apps.length > 0) ? apps : initialAppData;
+                let filteredApps = sourceApps;
+                
+                if (userPermissions !== 'ALL') {
+                    const permsArray = Array.isArray(userPermissions) ? userPermissions : [];
+                    filteredApps = sourceApps.filter(app => permsArray.includes(app.id));
+                }
+                const dashboardApp = { id: 'home', name: 'Dashboard', description: { id: 'Menu utama sistem.', en: 'Main system dashboard.' }, iconStr: 'home', component: 'SystemDashboard' };
+                if (!filteredApps.find(a => a.id === 'home')) filteredApps.unshift(dashboardApp);
+                return filteredApps;
+            }, [userPermissions, isFirebaseReady, apps]);
+
+            const allUrlsToLoad = useMemo(() => {
+                const urls = new Set();
+                visibleApps.forEach(app => {
+                    if (app.iframeUrl && app.iframeUrl !== '#') urls.add(app.iframeUrl);
+                    if (app.details) {
+                        app.details.forEach(d => {
+                            if (d.link && d.link !== '#' && !d.link.includes('page=map')) urls.add(d.link);
+                        });
+                    }
+                });
+                return Array.from(urls);
+            }, [visibleApps]);
+
+            const totalUrls = allUrlsToLoad.length;
+            const loadedUrlsCount = loadedUrls.length;
+            const progressRatio = totalUrls > 0 ? Math.round((loadedUrlsCount / totalUrls) * 100) : 100;
+
+            useEffect(() => { if (isLoggedIn && !activeAppId && visibleApps.length > 0) setActiveAppId(visibleApps[0].id); }, [isLoggedIn, visibleApps]);
+            useEffect(() => { setMenuOpen(false); }, [activeAppId]); 
+
+            useEffect(() => {
+                if (isPreloading) {
+                    const timer = setTimeout(() => { setIsPreloading(false); }, 10000); 
+                    return () => clearTimeout(timer);
+                }
+            }, [isPreloading]);
+
+            useEffect(() => {
+                if (isPreloading && totalUrls > 0 && loadedUrlsCount >= totalUrls) {
+                    setTimeout(() => setIsPreloading(false), 500); 
+                }
+            }, [loadedUrlsCount, totalUrls, isPreloading]);
+
+            const handleLoginAttempt = () => {
+                setIsCheckingAuth(true);
+                
+                if (!usersConfig) {
+                    setTimeout(() => setIsCheckingAuth(false), 800);
+                    return;
+                }
+
+                if (usersConfig && displayUserEmail) {
+                    const isRegistered = usersConfig.registeredUsers && usersConfig.registeredUsers[displayUserEmail];
+                    
+                    if (isRegistered) {
+                        setUserPermissions(isRegistered.access || 'ALL');
+                        setIsLoggedIn(true);
+                        setIsPreloading(true);
+                        setIsCheckingAuth(false);
+                    } else {
+                        const hasRequested = usersConfig.pendingRequests && usersConfig.pendingRequests.some(r => r.email === displayUserEmail);
+                        setLoginStatus(hasRequested ? 'request_sent' : 'unregistered');
+                        setIsCheckingAuth(false);
+                    }
+                } else if (!displayUserEmail) {
+                    handleGuestLogin();
+                    setIsCheckingAuth(false);
+                }
+            };
+
+            const handleGuestLogin = () => {
+                setUserPermissions(usersConfig?.guestModules || []);
+                setIsLoggedIn(true);
+                setIsPreloading(true);
+            };
+
+            const handleRequestAccess = async () => {
+                setIsCheckingAuth(true);
+                if (!user || !displayUserEmail) return;
+                
+                try {
+                    const usersRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'users');
+                    const currentRequests = usersConfig.pendingRequests || [];
+                    
+                    if (!currentRequests.some(r => r.email === displayUserEmail)) {
+                        const newRequest = { email: displayUserEmail, timestamp: new Date().toISOString(), status: 'pending' };
+                        await setDoc(usersRef, { ...usersConfig, pendingRequests: [...currentRequests, newRequest] });
+                    }
+                    
+                    if (typeof google !== 'undefined' && google.script) {
+                        google.script.run.sendAdminNotification(displayUserEmail);
+                    }
+                    
+                    setLoginStatus('request_sent');
+                } catch(e) {
+                    alert(language === 'en' ? "Failed to send request: " + e.message : "Gagal mengirim permintaan: " + e.message);
+                } finally {
+                    setIsCheckingAuth(false);
+                }
+            };
+
+            const handleIframeLoaded = useCallback((url) => {
+                setLoadedUrls(prev => prev.includes(url) ? prev : [...prev, url]);
+            }, []);
+
+            const handleIframeReloaded = useCallback((url) => {
+                setLoadedUrls(prev => prev.filter(u => u !== url));
+            }, []);
+
+            const activeApp = visibleApps.find(app => app.id === activeAppId);
+            
+            const activeUrl = useMemo(() => {
+                if (!activeApp || activeApp.id === 'home' || activeApp.component) return null;
+                if (activeSubItemId) {
+                    const sub = activeApp.details?.find(d => d.id === activeSubItemId);
+                    return sub && sub.link !== '#' ? sub.link : null;
+                }
+                return activeApp.details?.length > 0 ? null : (activeApp.iframeUrl !== '#' ? activeApp.iframeUrl : null);
+            }, [activeApp, activeSubItemId]);
+
+            const handleSelectApp = useCallback((appId, subItemId = null) => { setActiveAppId(appId); setActiveSubItemId(subItemId); setMenuOpen(false); }, []);
+
+            const currentUserName = usersConfig?.userProfiles?.[displayUserEmail]?.name || '';
+            const isConfigLoading = isCheckingAuth || (user && !usersConfig) || (user && !loginAppearance);
+
+            if (!isLoggedIn) return <LoginPage onLogin={handleLoginAttempt} onGuestLogin={handleGuestLogin} onRequestAccess={handleRequestAccess} userEmail={displayUserEmail} userName={currentUserName} isLoading={isConfigLoading} loginStatus={loginStatus} loginAppearance={loginAppearance} language={language} />;
+
+            const isHomeActive = activeApp?.id === 'home';
+            const isUnifiedActive = !isHomeActive;
+            const unreadCount = notifications.filter(n => !n.isRead).length;
+
+            return (
+                <ErrorBoundary>
+                    {isPreloading && (
+                        <SplashScreen 
+                            progress={progressRatio} 
+                            total={totalUrls} 
+                            loaded={loadedUrlsCount} 
+                            moduleCount={visibleApps.filter(a => a.id !== 'home').length}
+                            onSkip={() => setIsPreloading(false)} 
+                            language={language}
+                        />
+                    )}
+
+                    <div className="h-full w-full flex bg-[#F8FAFC] overflow-hidden font-sans relative">
+                        
+                        {isMobileSidebarOpen && (
+                            <div 
+                                className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[90] md:hidden transition-opacity" 
+                                onClick={() => setMobileSidebarOpen(false)}
+                            ></div>
+                        )}
+
+                        <Sidebar 
+                            apps={visibleApps} 
+                            activeAppId={activeAppId} 
+                            onSelectApp={handleSelectApp} 
+                            language={language} setLanguage={setLanguage}
+                            onLogout={() => setIsLoggedIn(false)}
+                            setMenuOpen={setMenuOpen} notifications={notifications} setIsNotificationOpen={setIsNotificationOpen}
+                            isMobileSidebarOpen={isMobileSidebarOpen} setMobileSidebarOpen={setMobileSidebarOpen}
+                        />
+
+                        <NotificationPanel 
+                            isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} notifications={notifications}
+                            markAsRead={(id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))} onSelectApp={handleSelectApp} onOpenForm={openFormModal} language={language}
+                        />
+                        
+                        <main className="flex-1 flex flex-col h-full relative overflow-hidden w-full">
+                            
+                            <div className="md:hidden flex items-center justify-between bg-white/90 backdrop-blur-md h-16 px-4 border-b border-slate-200 z-40 shrink-0 shadow-sm relative">
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => setMobileSidebarOpen(true)} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                                    </button>
+                                    <div className="flex items-center justify-center pt-1 w-24">
+                                        <VopakLogo className="h-6 w-auto object-contain" />
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => setIsNotificationOpen(true)} className="relative p-2 text-slate-500 hover:text-indigo-600 transition-colors">
+                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                        </svg>
+                                        {unreadCount > 0 && (
+                                            <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 border-2 border-white"></span>
+                                            </span>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className={`absolute md:inset-0 top-16 bottom-0 right-0 left-0 transition-opacity duration-300 w-full h-full p-4 md:p-8 lg:p-10 overflow-y-auto hide-scrollbar ${isHomeActive ? 'z-20 opacity-100 pointer-events-auto' : 'z-0 opacity-0 pointer-events-none'}`}>
+                                {isHomeActive && <SystemDashboard allApps={visibleApps} onSelectApp={handleSelectApp} userEmail={displayUserEmail} userName={currentUserName} language={language} permitsData={permitsData} calendarEvents={calendarEvents} loadingEvents={isCalendarLoading} notifications={notifications} />}
+                            </div>
+
+                            <div className={`absolute md:inset-0 top-16 bottom-0 right-0 left-0 transition-opacity duration-300 w-full h-full ${isUnifiedActive ? 'z-20 opacity-100 pointer-events-auto' : 'z-0 opacity-0 pointer-events-none'}`}>
+                                <UnifiedDashboard 
+                                    language={language} 
+                                    displayApp={activeApp?.id === 'home' ? visibleApps.find(a => a.id !== 'home') : activeApp}
+                                    isUnified={isUnifiedActive}
+                                    allUrls={allUrlsToLoad}
+                                    loadedUrls={loadedUrls}
+                                    onIframeLoad={handleIframeLoaded}
+                                    onIframeReload={handleIframeReloaded}
+                                    activeUrl={activeUrl}
+                                    onSelectApp={handleSelectApp}
+                                    activeSubItemId={activeSubItemId}
+                                    isMenuOpen={isMenuOpen}
+                                    setMenuOpen={setMenuOpen}
+                                    notifications={notifications}
+                                />
+                            </div>
+
+                        </main>
+
+                        <FormModal isOpen={formModalState.isOpen} onClose={closeFormModal} data={formModalState} language={language} />
+                        <HelpDeskModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} userEmail={displayUserEmail} language={language} />
+
+                        <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 flex flex-col items-center space-y-3 md:space-y-4 z-[60]">
+                            <button
+                                onClick={() => setIsHelpOpen(true)}
+                                className="p-3 md:p-3.5 rounded-full bg-rose-500 text-white backdrop-blur-md border border-rose-300/30 shadow-xl shadow-rose-500/20 hover:bg-rose-600 hover:shadow-rose-600/40 hover:scale-110 opacity-70 hover:opacity-100 transition-all duration-300 flex items-center justify-center group"
+                                title={language === 'en' ? 'IT Help Desk / Report Issue' : 'Lapor Kendala / IT Help Desk'}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6 transition-transform group-hover:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                            </button>
+
+                            {!isHomeActive && (
+                                <button
+                                    onClick={() => handleSelectApp('home')}
+                                    className="p-3.5 md:p-4 rounded-full bg-indigo-600 text-white backdrop-blur-md border border-indigo-300/30 shadow-xl shadow-indigo-500/20 hover:bg-indigo-700 hover:shadow-indigo-600/40 hover:scale-110 opacity-80 hover:opacity-100 transition-all duration-300 flex items-center justify-center group animate-fade-up"
+                                    title={language === 'en' ? 'Back to Main Dashboard' : 'Kembali ke Dashboard Utama'}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-7 md:w-7 transition-transform group-hover:-translate-y-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 001 1m-6 0h6" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </ErrorBoundary>
+            );
+        };
+        
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
